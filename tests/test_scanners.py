@@ -80,3 +80,16 @@ def test_missing_bandit_target_fails_closed():
 
     assert result["status"] == "ERROR"
     assert result["findings"] == []
+
+def test_run_bandit_preserves_relative_finding_paths():
+    result = run_bandit("fixtures/bandit")
+
+    assert result["status"] == "PASS"
+    assert result["findings"]
+
+    finding = next(
+        item for item in result["findings"]
+        if item["rule_id"] == "B602"
+    )
+
+    assert finding["file"] == "vulnerable_sample.py"

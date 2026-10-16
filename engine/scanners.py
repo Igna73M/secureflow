@@ -1,16 +1,21 @@
 """Adapters that convert scanner output into SecureFlow's common schema."""
 
+from pathlib import Path
 from typing import Any
 
 from engine.normalizer import normalize_many
 from engine.orchestrator import parse_json_output, run_check
 
 
-def normalize_bandit_report(report: Any) -> list[dict[str, Any]]:
-    """Convert a Bandit JSON report into normalized SecureFlow findings."""
+def normalize_bandit_report(
+    report: Any,
+    target_root: str | Path | None = None,
+) -> list[dict[str, Any]]:
+    """Convert Bandit JSON output into normalized SecureFlow findings."""
     if not isinstance(report, dict):
         raise ValueError("Bandit report must be a JSON object.")
 
+    root = Path(target_root).resolve() if target_root is not None else None
     results = report.get("results")
     errors = report.get("errors", [])
 
@@ -29,12 +34,26 @@ def normalize_bandit_report(report: Any) -> list[dict[str, Any]]:
         if not isinstance(item, dict):
             raise ValueError("Bandit report contains an invalid finding.")
 
+        filename = item.get("filename")
+
+        safe_relative_file = None
+        if isinstance(filename, str):
+            candidate = Path(filename)
+
+            if root is not None:
+                try:
+                    safe_relative_file = candidate.resolve().relative_to(root).as_posix()
+                except (OSError, ValueError, RuntimeError):
+                    safe_relative_file = None
+            elif not candidate.is_absolute():
+                safe_relative_file = filename
+
         raw_findings.append({
             "rule_id": item.get("test_id", "unknown"),
             "severity": item.get("issue_severity", "INFO"),
             "title": item.get("issue_text", "Bandit finding"),
             "message": item.get("issue_text", "Bandit finding"),
-            "file": item.get("filename"),
+            "file": safe_relative_file,
             "line": item.get("line_number"),
         })
 
@@ -71,7 +90,7 @@ def run_bandit(
 
     try:
         report = parse_json_output(execution.get("stdout", ""))
-        findings = normalize_bandit_report(report)
+        findings = normalize_bandit_report(report, target_root=target)
     except ValueError as exc:
         base["error"] = str(exc)
         return base

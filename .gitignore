@@ -5,6 +5,8 @@ __pycache__/
 api/node_modules/
 .env
 *.db
+*.db-shm
+*.db-wal
 *.sqlite
 coverage/
 dist/
