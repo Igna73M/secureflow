@@ -1,5 +1,6 @@
+.PHONY: ci test test-python test-api gate-test scan-engine
 
-.PHONY: test test-python test-api
+ci: test gate-test scan-engine
 
 test: test-python test-api
 
@@ -8,3 +9,9 @@ test-python:
 
 test-api:
 	cd api && npm test
+
+gate-test:
+	python scripts/verify_gate.py
+
+scan-engine:
+	python -m engine.cli scan engine
