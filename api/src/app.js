@@ -1,4 +1,5 @@
 
+const path = require("node:path");
 const express = require("express");
 const db = require("./db");
 
@@ -6,6 +7,8 @@ const app = express();
 
 app.disable("x-powered-by");
 app.use(express.json({ limit: "256kb", strict: true }));
+
+app.use(express.static(path.join(__dirname, "../../dashboard")));
 
 const VALID_DECISIONS = new Set(["PASS", "FAIL", "ERROR"]);
 const VALID_SEVERITIES = new Set([
