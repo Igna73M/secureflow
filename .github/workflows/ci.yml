@@ -1,0 +1,101 @@
+name: SecureFlow CI
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: secureflow-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    name: Test SecureFlow
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.14"
+          cache: pip
+          cache-dependency-path: requirements.txt
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: api/package-lock.json
+
+      - name: Install Python dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements.txt
+
+      - name: Install API dependencies
+        working-directory: api
+        run: npm ci
+
+      - name: Run unit and API tests
+        run: make test
+
+      - name: Verify the security gate blocks vulnerable code
+        shell: bash
+        run: |
+          report_file="$(mktemp)"
+
+          if python -m engine.cli scan fixtures/bandit > "$report_file"; then
+            scan_exit=0
+          else
+            scan_exit=$?
+          fi
+
+          if [ "$scan_exit" -ne 1 ]; then
+            echo "Expected the vulnerable fixture to return FAIL (exit 1); got exit $scan_exit"
+            cat "$report_file"
+            exit 1
+          fi
+
+          python - "$report_file" <<'PY'
+          import json
+          import sys
+
+          with open(sys.argv[1], encoding="utf-8") as report_file:
+              report = json.load(report_file)
+
+          assert report.get("decision") == "FAIL", (
+              f"Expected FAIL, got {report.get('decision')!r}"
+          )
+          assert report.get("promotion_allowed") is False, (
+              "The gate incorrectly allowed promotion"
+          )
+
+          blocking_findings = [
+              finding
+              for check in report.get("checks", [])
+              for finding in check.get("findings", [])
+              if finding.get("blocking") is True
+          ]
+
+          assert blocking_findings, "Expected at least one blocking finding"
+
+          print(
+              "Security gate verified: vulnerable code was blocked "
+              f"({len(blocking_findings)} blocking finding(s))."
+          )
+          PY
+
+          rm -f "$report_file"
+
+      - name: Scan SecureFlow engine
+        run: python -m engine.cli scan engine
