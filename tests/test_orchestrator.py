@@ -76,3 +76,52 @@ def test_evaluate_checks_uses_fail_closed_policy():
 
     assert result["decision"] == "ERROR"
     assert result["promotion_allowed"] is False
+
+
+def test_stdout_output_limit_returns_error():
+    from engine.orchestrator import MAX_OUTPUT_BYTES
+
+    result = run_check(
+        "noisy-scanner",
+        [
+            sys.executable,
+            "-c",
+            "import sys; sys.stdout.write('x' * 3000000)",
+        ],
+    )
+
+    assert result["status"] == "ERROR"
+    assert result["output_truncated"] is True
+    assert "maximum output size" in result["error"]
+    assert len(result["stdout"].encode("utf-8")) <= MAX_OUTPUT_BYTES
+
+
+def test_stderr_output_limit_returns_error():
+    from engine.orchestrator import MAX_OUTPUT_BYTES
+
+    result = run_check(
+        "noisy-scanner",
+        [
+            sys.executable,
+            "-c",
+            "import sys; sys.stderr.write('x' * 3000000)",
+        ],
+    )
+
+    assert result["status"] == "ERROR"
+    assert result["output_truncated"] is True
+    assert "maximum output size" in result["error"]
+    assert len(result["stderr"].encode("utf-8")) <= MAX_OUTPUT_BYTES
+
+
+def test_oversized_output_cannot_return_pass():
+    result = run_check(
+        "noisy-scanner",
+        [
+            sys.executable,
+            "-c",
+            "print('x' * 3000000)",
+        ],
+    )
+
+    assert result["status"] != "PASS"
