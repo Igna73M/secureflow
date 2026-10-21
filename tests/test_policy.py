@@ -108,3 +108,12 @@ def test_invalid_required_checks_argument_fails_closed():
 
     assert result["decision"] == "ERROR"
     assert result["promotion_allowed"] is False
+
+
+def test_missing_findings_fails_closed():
+    result = evaluate_policy([
+        {"name": "bandit", "status": "PASS"},
+    ], required_checks=["bandit"])
+
+    assert result["decision"] == "ERROR"
+    assert result["promotion_allowed"] is False

@@ -125,3 +125,23 @@ def test_oversized_output_cannot_return_pass():
     )
 
     assert result["status"] != "PASS"
+
+
+def test_child_inheriting_pipe_cannot_hang_after_parent_exits():
+    result = run_check(
+        "child-process-check",
+        [
+            sys.executable,
+            "-c",
+            (
+                "import subprocess, sys; "
+                "subprocess.Popen([sys.executable, '-c', "
+                "'import time; time.sleep(30)']); "
+                "print('parent exited')"
+            ),
+        ],
+        timeout_seconds=1,
+    )
+
+    assert result["status"] == "ERROR"
+    assert "output streams did not close" in result["error"]

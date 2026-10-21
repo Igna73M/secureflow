@@ -44,7 +44,6 @@ def evaluate_policy(
 
         name = check.get("name")
         status = check.get("status")
-        findings = check.get("findings", [])
 
         if not isinstance(name, str) or not name.strip():
             errors.append("A check has a missing or invalid name.")
@@ -58,6 +57,12 @@ def evaluate_policy(
         if not isinstance(status, str) or status not in VALID_STATUSES:
             errors.append(f"Check '{name}' has an invalid status.")
             continue
+
+        if "findings" not in check:
+            errors.append(f"Check '{name}' is missing findings.")
+            continue
+
+        findings = check["findings"]
 
         if not isinstance(findings, list):
             errors.append(f"Check '{name}' has invalid findings.")

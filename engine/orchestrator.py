@@ -127,7 +127,18 @@ def run_check(
 
     if process.stdout is None or process.stderr is None:
         _kill_process_group(process)
-        process.wait()
+        try:
+            process.wait(timeout=1.0)
+        except subprocess.TimeoutExpired:
+            try:
+                process.kill()
+            except OSError:
+                pass
+            try:
+                process.wait(timeout=1.0)
+            except subprocess.TimeoutExpired:
+                pass
+
         return {
             "name": name,
             "status": "ERROR",
@@ -153,24 +164,62 @@ def run_check(
         reader.start()
 
     timed_out = False
+    reader_timeout = False
+    deadline = time.monotonic() + timeout_seconds
     try:
         process.wait(timeout=timeout_seconds)
     except subprocess.TimeoutExpired:
         timed_out = True
         _kill_process_group(process)
-        process.wait()
 
-    # The pipes are drained concurrently, preventing a full pipe from
-    # deadlocking the scanner while the parent waits for process completion.
+        try:
+            process.wait(timeout=1.0)
+        except subprocess.TimeoutExpired:
+            # Fallback: try killing the scanner process directly.
+            try:
+                process.kill()
+            except OSError:
+                pass
+
+            try:
+                process.wait(timeout=1.0)
+            except subprocess.TimeoutExpired:
+                # Never block the gate indefinitely during cleanup.
+                pass
+
+    # Wait only until the original deadline for output streams to close.
     for reader in readers:
-        reader.join()
+        reader.join(timeout=max(0.0, deadline - time.monotonic()))
 
-    for stream in (process.stdout, process.stderr):
-        stream.close()
+    # Record whether the deadline was missed before cleanup can unblock readers.
+    reader_timeout = any(reader.is_alive() for reader in readers)
+    if reader_timeout:
+        _kill_process_group(process)
+        cleanup_deadline = time.monotonic() + 1.0
+        for reader in readers:
+            reader.join(
+                timeout=max(0.0, cleanup_deadline - time.monotonic())
+            )
+
+    # Close streams only after readers have stopped using them.
+    if not any(reader.is_alive() for reader in readers):
+        for stream in (process.stdout, process.stderr):
+            stream.close()
 
     stdout = captured["stdout"].decode("utf-8", errors="replace")
     stderr = captured["stderr"].decode("utf-8", errors="replace")
     duration_ms = int((time.monotonic() - started) * 1000)
+
+    if reader_timeout:
+        return {
+            "name": name,
+            "status": "ERROR",
+            "findings": [],
+            "exit_code": process.returncode,
+            "output_truncated": True,
+            "error": "Scanner output streams did not close within the cleanup deadline.",
+            "duration_ms": duration_ms,
+        }
 
     if timed_out:
         return {
