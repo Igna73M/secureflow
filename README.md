@@ -41,7 +41,14 @@ The CLI returns a structured report and a process exit code. CI should treat onl
 | `FAIL` | `1` | Denied |
 | `ERROR` | `2` | Denied |
 
-The exact result depends on the checks and policy evaluated for the scan. See [the architecture documentation](docs/architecture.md) and [the threat model](docs/threat-model.md) for details.
+The exact result depends on the checks and policy evaluated for the scan.
+
+## Documentation
+
+- **[Architecture](docs/architecture.md)** — explains SecureFlow's components, scan lifecycle, policy evaluation, and CI/CD integration.
+- **[Threat Model](docs/threat-model.md)** — documents security assets, trust boundaries, threats, existing mitigations, and remaining risks.
+- **[Demo Guide](docs/demo.md)** — provides step-by-step instructions for running tests, demonstrating a vulnerable scan being blocked, and verifying a safe scan.
+- **[Architecture Decision Records](docs/decisions.md)** — explains key design decisions, including fail-closed enforcement, Bandit integration, exit codes, subprocess handling, the separation between enforcement and reporting, SQLite storage, and the handling of unverified API reports.
 
 ## Requirements
 
