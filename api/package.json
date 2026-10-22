@@ -4,9 +4,9 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-  "start": "node src/server.js",
-  "test": "node --test"
-},
+    "start": "node src/server.js",
+    "test": "node --test"
+  },
   "keywords": [],
   "author": "",
   "license": "ISC",
@@ -15,6 +15,8 @@
     "express": "^5.3.0"
   },
   "devDependencies": {
+    "eslint": "^10.13.0",
+    "eslint-plugin-security": "^4.2.0",
     "supertest": "^7.3.1"
   }
 }

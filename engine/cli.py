@@ -1,3 +1,4 @@
+
 """Command-line interface for SecureFlow."""
 
 import argparse
@@ -6,11 +7,15 @@ import sys
 from pathlib import Path
 
 from engine.policy import evaluate_policy
-from engine.scanners import run_bandit
+from engine.scanners import run_bandit, run_eslint, run_semgrep
+
+
+PYTHON_EXTENSIONS = {".py"}
+JAVASCRIPT_EXTENSIONS = {".js", ".cjs", ".mjs"}
 
 
 def scan_target(target: str) -> dict:
-    """Run configured scanners and evaluate the security policy."""
+    """Run the required scanners for the languages present in a directory."""
     path = Path(target).resolve()
 
     if not path.exists() or not path.is_dir():
@@ -22,13 +27,39 @@ def scan_target(target: str) -> dict:
             "blocking_findings": [],
         }
 
-    check = run_bandit(str(path))
+    python_files = [
+        item for item in path.rglob("*")
+        if item.is_file() and item.suffix.lower() in PYTHON_EXTENSIONS
+    ]
+    javascript_files = [
+        item for item in path.rglob("*")
+        if item.is_file() and item.suffix.lower() in JAVASCRIPT_EXTENSIONS
+    ]
 
-    # Scanner execution errors must remain ERROR, not be mistaken for clean.
-    decision = evaluate_policy(
-        [check],
-        required_checks=["bandit"],
-    )
+    # Don't let an empty or unsupported directory pass without a scan.
+    if not python_files and not javascript_files:
+        return {
+            "decision": "ERROR",
+            "promotion_allowed": False,
+            "errors": ["Target contains no supported Python or JavaScript files."],
+            "checks": [],
+            "blocking_findings": [],
+            "target": str(path),
+        }
+
+    checks = []
+    required_checks = []
+
+    if python_files:
+        checks.append(run_bandit(str(path)))
+        required_checks.append("bandit")
+
+    if javascript_files:
+        checks.append(run_semgrep(str(path)))
+        checks.append(run_eslint(str(path)))
+        required_checks.extend(["semgrep", "eslint"])
+
+    decision = evaluate_policy(checks, required_checks=required_checks)
 
     return {
         **decision,

@@ -93,3 +93,93 @@ def test_run_bandit_preserves_relative_finding_paths():
     )
 
     assert finding["file"] == "vulnerable_sample.py"
+
+
+def test_normalizes_semgrep_report(tmp_path):
+    from engine.scanners import normalize_semgrep_report
+
+    report = {
+        "results": [
+            {
+                "check_id": "secureflow.javascript.eval",
+                "path": str(tmp_path / "vulnerable.js"),
+                "start": {"line": 3},
+                "extra": {
+                    "severity": "ERROR",
+                    "message": "Avoid eval.",
+                },
+            }
+        ],
+        "errors": [],
+    }
+
+    findings = normalize_semgrep_report(report, tmp_path)
+
+    assert len(findings) == 1
+    assert findings[0]["scanner"] == "semgrep"
+    assert findings[0]["rule_id"] == "secureflow.javascript.eval"
+    assert findings[0]["severity"] == "HIGH"
+    assert findings[0]["file"] == "vulnerable.js"
+    assert findings[0]["line"] == 3
+    assert findings[0]["blocking"] is True
+
+
+def test_semgrep_rejects_scan_errors(tmp_path):
+    from engine.scanners import normalize_semgrep_report
+
+    with pytest.raises(ValueError, match="scan errors"):
+        normalize_semgrep_report(
+            {"results": [], "errors": [{"message": "scan failed"}]},
+            tmp_path,
+        )
+
+
+def test_normalizes_eslint_report(tmp_path):
+    from engine.scanners import normalize_eslint_report
+
+    report = [
+        {
+            "filePath": str(tmp_path / "vulnerable.js"),
+            "fatalErrorCount": 0,
+            "messages": [
+                {
+                    "ruleId": "security/detect-child-process",
+                    "severity": 2,
+                    "message": "Unsafe child process command.",
+                    "line": 4,
+                },
+                {
+                    "ruleId": "example/notice",
+                    "severity": 1,
+                    "message": "Review this code.",
+                    "line": 5,
+                },
+            ],
+        }
+    ]
+
+    findings = normalize_eslint_report(report, tmp_path)
+
+    assert len(findings) == 2
+    assert findings[0]["scanner"] == "eslint"
+    assert findings[0]["severity"] == "HIGH"
+    assert findings[0]["file"] == "vulnerable.js"
+    assert findings[0]["line"] == 4
+    assert findings[0]["blocking"] is True
+    assert findings[1]["severity"] == "LOW"
+    assert findings[1]["blocking"] is False
+
+
+def test_eslint_rejects_fatal_errors(tmp_path):
+    from engine.scanners import normalize_eslint_report
+
+    report = [
+        {
+            "filePath": str(tmp_path / "broken.js"),
+            "fatalErrorCount": 1,
+            "messages": [],
+        }
+    ]
+
+    with pytest.raises(ValueError, match="fatal"):
+        normalize_eslint_report(report, tmp_path)

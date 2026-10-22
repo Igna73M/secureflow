@@ -1,0 +1,25 @@
+rules:
+  - id: secureflow.javascript.eval
+    languages: [javascript, typescript]
+    severity: ERROR
+    message: Avoid eval because it can execute dynamically constructed code.
+    pattern: eval($EXPR)
+    metadata:
+      category: security
+      technology: [javascript, typescript]
+
+  - id: secureflow.javascript.child-process-shell
+    languages: [javascript, typescript]
+    severity: ERROR
+    message: Avoid shell execution with dynamically constructed child-process commands.
+    patterns:
+      - pattern-either:
+          - pattern: exec($CMD, ...)
+          - pattern: execSync($CMD, ...)
+      - metavariable-pattern:
+          metavariable: $CMD
+          patterns:
+            - pattern: $CMD
+    metadata:
+      category: security
+      technology: [javascript, typescript]
