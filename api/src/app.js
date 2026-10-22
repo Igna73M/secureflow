@@ -5,6 +5,13 @@ const db = require("./db");
 
 const app = express();
 
+const fs = require("node:fs/promises");
+const os = require("node:os");
+const { execFile } = require("node:child_process");
+const { promisify } = require("node:util");
+
+const execFileAsync = promisify(execFile);
+
 app.disable("x-powered-by");
 app.use(express.json({ limit: "256kb", strict: true }));
 
@@ -192,6 +199,151 @@ app.post("/api/scans", (req, res) => {
     return res.status(500).json({ error: "Could not save scan." });
   }
 });
+
+
+const MAX_UPLOAD_BYTES = 100 * 1024;
+const PROJECT_ROOT = path.resolve(__dirname, "../..");
+
+app.post("/api/scan-upload", async (req, res) => {
+  const { filename, content } = req.body ?? {};
+
+  if (
+    typeof filename !== "string" ||
+    filename.trim().length === 0 ||
+    filename.length > 255 ||
+    !filename.toLowerCase().endsWith(".py")
+  ) {
+    return res.status(400).json({
+      error: "filename must identify a Python (.py) file.",
+    });
+  }
+
+  if (typeof content !== "string" || content.length === 0) {
+    return res.status(400).json({
+      error: "content must be a non-empty string.",
+    });
+  }
+
+  if (Buffer.byteLength(content, "utf8") > MAX_UPLOAD_BYTES) {
+    return res.status(413).json({
+      error: "Python source must not exceed 100 KiB.",
+    });
+  }
+
+  const safeFilename = path.basename(filename.replace(/\\/g, "/"));
+
+  if (
+    !safeFilename ||
+    safeFilename === "." ||
+    safeFilename === ".." ||
+    !safeFilename.toLowerCase().endsWith(".py")
+  ) {
+    return res.status(400).json({ error: "Invalid filename." });
+  }
+
+  let tempDir;
+
+  try {
+    tempDir = await fs.mkdtemp(
+      path.join(os.tmpdir(), "secureflow-upload-")
+    );
+
+    await fs.writeFile(
+      path.join(tempDir, safeFilename),
+      content,
+      { encoding: "utf8", flag: "wx", mode: 0o600 }
+    );
+
+    let result;
+
+    try {
+      const { stdout } = await execFileAsync(
+        process.env.SECUREFLOW_PYTHON || "python",
+        ["-m", "engine.cli", "scan", tempDir],
+        {
+          cwd: PROJECT_ROOT,
+          timeout: 65000,
+          maxBuffer: 2_100_000,
+          windowsHide: true,
+        }
+      );
+
+      result = JSON.parse(stdout);
+    } catch (error) {
+      // Exit codes 1 and 2 are expected for FAIL and ERROR.
+      // execFile rejects on nonzero exit codes, but stdout can
+      // still contain the CLI's structured decision.
+      try {
+        result = JSON.parse(error.stdout);
+      } catch {
+        result = {
+          decision: "ERROR",
+          promotion_allowed: false,
+          errors: ["The security scanner failed or returned invalid output."],
+          checks: [],
+          blocking_findings: [],
+        };
+      }
+    }
+
+    const validDecision = ["PASS", "FAIL", "ERROR"].includes(
+      result.decision
+    );
+
+    if (
+      !validDecision ||
+      result.promotion_allowed !== (result.decision === "PASS") ||
+      !Array.isArray(result.checks)
+    ) {
+      result = {
+        decision: "ERROR",
+        promotion_allowed: false,
+        errors: ["The scanner returned an invalid result."],
+        checks: [],
+        blocking_findings: [],
+      };
+    }
+
+    const findings = result.checks.flatMap(check =>
+      Array.isArray(check.findings) ? check.findings : []
+    );
+
+    const scanRecord = {
+      target: `upload:${safeFilename}`,
+      decision: result.decision,
+      promotion_allowed: result.promotion_allowed,
+      findings,
+    };
+
+    const validationError = validateScan(scanRecord);
+
+    if (validationError) {
+      return res.status(500).json({
+        error: "The scanner result failed validation.",
+      });
+    }
+
+    const id = insertScanWithFindings(scanRecord);
+
+    return res.status(201).json({
+      id,
+      target: scanRecord.target,
+      decision: result.decision,
+      promotion_allowed: result.promotion_allowed,
+      errors: result.errors ?? [],
+      findings,
+    });
+  } catch {
+    return res.status(500).json({
+      error: "Could not complete the uploaded-file scan.",
+    });
+  } finally {
+    if (tempDir) {
+      await fs.rm(tempDir, { recursive: true, force: true }).catch(() => {});
+    }
+  }
+});
+
 
 app.get("/api/scans", (req, res) => {
   const rawLimit = req.query.limit ?? "20";

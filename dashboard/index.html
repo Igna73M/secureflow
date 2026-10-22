@@ -31,6 +31,61 @@
       <button id="refresh-button" type="button">Refresh data ↻</button>
     </section>
 
+
+    <section class="panel" id="latest-decision-panel" aria-live="polite">
+      <div class="panel-heading">
+        <div>
+          <p class="eyebrow">LATEST SECURITY DECISION</p>
+          <h2 id="latest-decision-title">Awaiting scan data</h2>
+          <p class="muted" id="latest-decision-subtitle">
+            Scan history will determine the latest promotion decision.
+          </p>
+        </div>
+        <span id="latest-decision-badge" class="decision ERROR">PENDING</span>
+      </div>
+      <div class="findings-container">
+        <p id="latest-decision-reason" class="muted">
+          Run a scan or refresh the dashboard to load the latest decision.
+        </p>
+      </div>
+    </section>
+
+
+    <section class="panel" id="upload-panel">
+      <div class="panel-heading">
+        <div>
+          <h2>Scan Python file</h2>
+          <p class="muted">
+            Upload a Python source file for static security analysis.
+            The source is analyzed, not executed.
+          </p>
+        </div>
+      </div>
+
+      <form id="upload-form">
+        <label for="python-file">Python source file (.py)</label>
+        <div class="upload-controls">
+          <input
+            id="python-file"
+            name="python-file"
+            type="file"
+            accept=".py,text/x-python"
+            required
+          >
+          <button id="upload-button" type="submit">Scan file</button>
+        </div>
+        <p class="muted">Maximum file size: 100 KiB.</p>
+      </form>
+
+      <section
+        id="upload-result"
+        class="upload-result"
+        aria-live="polite"
+        hidden
+      ></section>
+    </section>
+
+
     <p id="status-message" class="status-message" role="status">
       Loading scan history…
     </p>

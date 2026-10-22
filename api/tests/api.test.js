@@ -162,3 +162,75 @@ test("rejects PASS when a finding is blocking", async () => {
 
   assert.equal(response.status, 400);
 });
+
+
+test("scans safe uploaded Python and allows promotion", async () => {
+  const response = await request(app)
+    .post("/api/scan-upload")
+    .send({
+      filename: "safe_sample.py",
+      content: 'def greet(name):\n    return f"Hello, {name}!"\n',
+    });
+
+  assert.equal(response.status, 201);
+  assert.equal(response.body.decision, "PASS");
+  assert.equal(response.body.promotion_allowed, true);
+  assert.equal(response.body.findings.length, 0);
+
+  const details = await request(app)
+    .get(`/api/scans/${response.body.id}`);
+
+  assert.equal(details.status, 200);
+  assert.equal(details.body.decision, "PASS");
+});
+
+
+test("blocks vulnerable uploaded Python", async () => {
+  const response = await request(app)
+    .post("/api/scan-upload")
+    .send({
+      filename: "vulnerable_sample.py",
+      content: [
+        "import subprocess",
+        "",
+        "def run_user_command(user_input):",
+        "    subprocess.call(user_input, shell=True)",
+        "",
+      ].join("\n"),
+    });
+
+  assert.equal(response.status, 201);
+  assert.equal(response.body.decision, "FAIL");
+  assert.equal(response.body.promotion_allowed, false);
+  assert.ok(
+    response.body.findings.some(
+      finding => finding.rule_id === "B602" &&
+        finding.severity === "HIGH" &&
+        finding.blocking
+    ),
+    JSON.stringify(response.body.findings, null, 2)
+  );
+});
+
+
+test("rejects non-Python upload filenames", async () => {
+  const response = await request(app)
+    .post("/api/scan-upload")
+    .send({
+      filename: "payload.sh",
+      content: "echo unsafe",
+    });
+
+  assert.equal(response.status, 400);
+});
+
+test("rejects oversized uploaded Python source", async () => {
+  const response = await request(app)
+    .post("/api/scan-upload")
+    .send({
+      filename: "large.py",
+      content: "x".repeat(100 * 1024 + 1),
+    });
+
+  assert.equal(response.status, 413);
+});
