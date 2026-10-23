@@ -30,6 +30,7 @@ SecureFlow is a CI/CD security gate that scans supported Python and JavaScript f
   - [Security limitations](#security-limitations)
   - [Documentation](#documentation)
   - [Contributing and license](#contributing-and-license)
+  - [License](#license)
 
 ## Why SecureFlow
 
@@ -351,4 +352,8 @@ The [architecture document](docs/architecture.md) describes the current CLI, sca
 
 ## Contributing and license
 
-Contributions are welcome. Run the relevant tests and gate checks before proposing changes, and keep documentation aligned with the implementation. This repository does not currently include a root-level license file; the `ISC` metadata in `api/package.json` applies to that package metadata and should not be treated as a license for the entire repository. No project-wide license is stated here.
+Contributions are welcome. Run the relevant tests and gate checks before proposing changes, and keep documentation aligned with the implementation.
+
+## License
+
+SecureFlow is licensed under the MIT License. See the [MIT License](LICENSE) file. This license applies to SecureFlow; dependencies, third-party scanners, and other external components remain subject to their own licenses.
