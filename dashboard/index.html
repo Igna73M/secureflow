@@ -1,154 +1,148 @@
-
 <!doctype html>
 <html lang="en">
+
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="color-scheme" content="dark">
-  <title>SecureFlow | Security Gate</title>
-  <link rel="stylesheet" href="styles.css">
-  <script src="app.js" defer></script>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="color-scheme" content="dark">
+    <title>SecureFlow | Security Gate</title>
+    <link rel="stylesheet" href="styles.css">
+    <script src="app.js" defer></script>
 </head>
+
 <body>
-  <header class="topbar">
-    <div class="brand">
-      <span class="brand-mark">S</span>
-      <div>
-        <h1>SecureFlow</h1>
-        <p>CI/CD Security Gate</p>
-      </div>
-    </div>
-    <span class="connection"><span></span> API connected</span>
-  </header>
-
-  <main class="container">
-    <section class="intro">
-      <div>
-        <p class="eyebrow">SECURITY OPERATIONS</p>
-        <h2>Scan overview</h2>
-        <p class="muted">Review scan decisions and security findings.</p>
-      </div>
-      <button id="refresh-button" type="button">Refresh data ↻</button>
-    </section>
-
-
-    <section class="panel" id="latest-decision-panel" aria-live="polite">
-      <div class="panel-heading">
-        <div>
-          <p class="eyebrow">LATEST SECURITY DECISION</p>
-          <h2 id="latest-decision-title">Awaiting scan data</h2>
-          <p class="muted" id="latest-decision-subtitle">
-            Scan history will determine the latest promotion decision.
-          </p>
+    <header class="topbar">
+        <div class="brand">
+            <span class="brand-mark">S</span>
+            <div>
+                <h1>SecureFlow</h1>
+                <p>CI/CD Security Gate</p>
+            </div>
         </div>
-        <span id="latest-decision-badge" class="decision ERROR">PENDING</span>
-      </div>
-      <div class="findings-container">
-        <p id="latest-decision-reason" class="muted">
-          Run a scan or refresh the dashboard to load the latest decision.
+        <span class="connection"><span></span> API connected</span>
+    </header>
+
+    <main class="container">
+        <section class="intro">
+            <div>
+                <p class="eyebrow">SECURITY OPERATIONS</p>
+                <h2>Scan overview</h2>
+                <p class="muted">Review scan decisions and security findings.</p>
+            </div>
+            <button id="refresh-button" type="button">Refresh data ↻</button>
+        </section>
+
+
+        <section class="panel" id="latest-decision-panel" aria-live="polite">
+            <div class="panel-heading">
+                <div>
+                    <p class="eyebrow">LATEST SECURITY DECISION</p>
+                    <h2 id="latest-decision-title">Awaiting scan data</h2>
+                    <p class="muted" id="latest-decision-subtitle">
+                        Scan history will determine the latest promotion decision.
+                    </p>
+                </div>
+                <span id="latest-decision-badge" class="decision ERROR">PENDING</span>
+            </div>
+            <div class="findings-container">
+                <p id="latest-decision-reason" class="muted">
+                    Run a scan or refresh the dashboard to load the latest decision.
+                </p>
+            </div>
+        </section>
+
+
+        <section class="panel" id="upload-panel">
+            <div class="panel-heading">
+                <div>
+                    <h2>Scan source file</h2>
+                    <p class="muted">
+                        Upload a Python or JavaScript source file for static security analysis.
+                        The source is analyzed, not executed.
+                    </p>
+                </div>
+            </div>
+
+            <form id="upload-form">
+                <label for="python-file">Source file (.py, .js, .cjs, .mjs)</label>
+                <div class="upload-controls">
+                    <input id="python-file" name="source-file" type="file"
+                        accept=".py,.js,.cjs,.mjs,text/x-python,text/javascript" required> <button id="upload-button"
+                        type="submit">Scan file</button>
+                </div>
+                <p class="muted">Maximum file size: 100 KiB.</p>
+            </form>
+
+            <section id="upload-result" class="upload-result" aria-live="polite" hidden></section>
+        </section>
+
+
+        <p id="status-message" class="status-message" role="status">
+            Loading scan history…
         </p>
-      </div>
-    </section>
 
+        <section class="stats" aria-label="Scan statistics">
+            <article class="stat-card">
+                <p>Total scans</p>
+                <strong id="total-scans">—</strong>
+            </article>
+            <article class="stat-card">
+                <p>Passed</p>
+                <strong id="passed-scans" class="pass-text">—</strong>
+            </article>
+            <article class="stat-card">
+                <p>Failed</p>
+                <strong id="failed-scans" class="fail-text">—</strong>
+            </article>
+            <article class="stat-card">
+                <p>Errors</p>
+                <strong id="error-scans">—</strong>
+            </article>
+        </section>
 
-    <section class="panel" id="upload-panel">
-      <div class="panel-heading">
-        <div>
-          <h2>Scan Python file</h2>
-          <p class="muted">
-            Upload a Python source file for static security analysis.
-            The source is analyzed, not executed.
-          </p>
-        </div>
-      </div>
+        <section class="panel">
+            <div class="panel-heading">
+                <div>
+                    <h2>Recent scans</h2>
+                    <p class="muted">Select a scan to inspect its findings.</p>
+                </div>
+            </div>
+            <div class="table-wrap">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Target</th>
+                            <th>Decision</th>
+                            <th>Promotion</th>
+                            <th>Created</th>
+                        </tr>
+                    </thead>
+                    <tbody id="scan-table">
+                        <tr>
+                            <td colspan="5">Loading…</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
 
-      <form id="upload-form">
-        <label for="python-file">Python source file (.py)</label>
-        <div class="upload-controls">
-          <input
-            id="python-file"
-            name="python-file"
-            type="file"
-            accept=".py,text/x-python"
-            required
-          >
-          <button id="upload-button" type="submit">Scan file</button>
-        </div>
-        <p class="muted">Maximum file size: 100 KiB.</p>
-      </form>
+        <section class="panel" id="detail-panel">
+            <div class="panel-heading">
+                <div>
+                    <h2>Scan details</h2>
+                    <p class="muted" id="detail-subtitle">
+                        Select a scan from the history above.
+                    </p>
+                </div>
+            </div>
+            <div id="findings-container" class="findings-container">
+                <p class="empty-state">No scan selected.</p>
+            </div>
+        </section>
 
-      <section
-        id="upload-result"
-        class="upload-result"
-        aria-live="polite"
-        hidden
-      ></section>
-    </section>
-
-
-    <p id="status-message" class="status-message" role="status">
-      Loading scan history…
-    </p>
-
-    <section class="stats" aria-label="Scan statistics">
-      <article class="stat-card">
-        <p>Total scans</p>
-        <strong id="total-scans">—</strong>
-      </article>
-      <article class="stat-card">
-        <p>Passed</p>
-        <strong id="passed-scans" class="pass-text">—</strong>
-      </article>
-      <article class="stat-card">
-        <p>Failed</p>
-        <strong id="failed-scans" class="fail-text">—</strong>
-      </article>
-      <article class="stat-card">
-        <p>Errors</p>
-        <strong id="error-scans">—</strong>
-      </article>
-    </section>
-
-    <section class="panel">
-      <div class="panel-heading">
-        <div>
-          <h2>Recent scans</h2>
-          <p class="muted">Select a scan to inspect its findings.</p>
-        </div>
-      </div>
-      <div class="table-wrap">
-        <table>
-          <thead>
-            <tr>
-              <th>ID</th>
-              <th>Target</th>
-              <th>Decision</th>
-              <th>Promotion</th>
-              <th>Created</th>
-            </tr>
-          </thead>
-          <tbody id="scan-table">
-            <tr><td colspan="5">Loading…</td></tr>
-          </tbody>
-        </table>
-      </div>
-    </section>
-
-    <section class="panel" id="detail-panel">
-      <div class="panel-heading">
-        <div>
-          <h2>Scan details</h2>
-          <p class="muted" id="detail-subtitle">
-            Select a scan from the history above.
-          </p>
-        </div>
-      </div>
-      <div id="findings-container" class="findings-container">
-        <p class="empty-state">No scan selected.</p>
-      </div>
-    </section>
-
-    <footer>SecureFlow · Local security-gate prototype</footer>
-  </main>
+        <footer>SecureFlow · Local security-gate prototype</footer>
+    </main>
 </body>
+
 </html>

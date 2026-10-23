@@ -315,13 +315,16 @@ uploadForm.addEventListener("submit", async event => {
 
     if (!file) {
         uploadResult.hidden = false;
-        uploadResult.textContent = "Choose a Python file first.";
+        uploadResult.textContent = "Choose a source file first.";
         return;
     }
+    const allowedExtensions = [".py", ".js", ".cjs", ".mjs"];
+    const extension = file.name.slice(file.name.lastIndexOf(".")).toLowerCase();
 
-    if (!file.name.toLowerCase().endsWith(".py")) {
+    if (!allowedExtensions.includes(extension)) {
         uploadResult.hidden = false;
-        uploadResult.textContent = "Only .py files are accepted.";
+        uploadResult.textContent =
+            "Choose a .py, .js, .cjs, or .mjs source file.";
         return;
     }
 
