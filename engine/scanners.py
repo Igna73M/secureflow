@@ -264,6 +264,15 @@ def run_eslint(
             str(api_root / "src"),
             str(api_root / "tests"),
         ]
+    elif target_path.is_dir():
+        # ESLint 10 can ignore source files inside external temp directories.
+        # Pass supported JavaScript files explicitly instead.
+        scan_targets = [
+            str(item)
+            for item in sorted(target_path.rglob("*"))
+            if item.is_file()
+            and item.suffix.lower() in {".js", ".cjs", ".mjs"}
+        ]
     else:
         scan_targets = [str(target_path)]
 
