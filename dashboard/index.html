@@ -5,144 +5,199 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="color-scheme" content="dark">
-    <title>SecureFlow | Security Gate</title>
-    <link rel="stylesheet" href="styles.css">
-    <script src="app.js" defer></script>
+    <meta name="theme-color" content="#101916">
+    <meta name="description"
+        content="A fail-closed CI/CD security gate for supported Python and JavaScript source code.">
+    <title>SecureFlow | Security decisions for every release</title>
+    <link rel="stylesheet" href="home.css">
 </head>
 
 <body>
-    <header class="topbar">
-        <div class="brand">
-            <span class="brand-mark">S</span>
-            <div>
-                <h1>SecureFlow</h1>
-                <p>CI/CD Security Gate</p>
-            </div>
+    <a class="skip-link" href="#main">Skip to content</a>
+    <header class="site-header">
+        <a class="brand" href="/" aria-label="SecureFlow home">
+            <span class="brand-mark" aria-hidden="true"><span></span></span>
+            <span>secureflow</span>
+        </a>
+        <nav class="primary-nav" aria-label="Main navigation">
+            <a href="#capabilities">Product</a>
+            <a href="#workflow">How it works</a>
+            <a href="https://github.com/Igna73M/secureflow/blob/master/README.md">Documentation</a>
+        </nav>
+        <div class="header-actions">
+            <a class="sign-in" href="/login" data-auth-anon>Sign in</a>
+            <a class="button button-small" href="/register" data-auth-anon>Get started <span
+                    aria-hidden="true">↗</span></a>
+            <a class="sign-in" href="/console.html" data-auth-user hidden>Scan console</a>
+            <span class="sign-in" data-auth-email hidden></span>
+            <button class="sign-in auth-logout" type="button" data-auth-user data-auth-logout hidden>Sign out</button>
         </div>
-        <span class="connection"><span></span> API connected</span>
     </header>
 
-    <main class="container">
-        <section class="intro">
-            <div>
-                <p class="eyebrow">SECURITY OPERATIONS</p>
-                <h2>Scan overview</h2>
-                <p class="muted">Review scan decisions and security findings.</p>
-            </div>
-            <button id="refresh-button" type="button">Refresh data ↻</button>
-        </section>
-
-
-        <section class="panel" id="latest-decision-panel" aria-live="polite">
-            <div class="panel-heading">
-                <div>
-                    <p class="eyebrow">LATEST SECURITY DECISION</p>
-                    <h2 id="latest-decision-title">Awaiting scan data</h2>
-                    <p class="muted" id="latest-decision-subtitle">
-                        Scan history will determine the latest promotion decision.
-                    </p>
-                </div>
-                <span id="latest-decision-badge" class="decision ERROR">PENDING</span>
-            </div>
-            <div class="findings-container">
-                <p id="latest-decision-reason" class="muted">
-                    Run a scan or refresh the dashboard to load the latest decision.
+    <main id="main">
+        <section class="hero section-shell" aria-labelledby="hero-title">
+            <div class="hero-copy">
+                <p class="eyebrow"><span class="eyebrow-dot" aria-hidden="true"></span> SECURITY THAT FITS THE PIPELINE
                 </p>
+                <h1 id="hero-title">Ship with a<br><em>clear decision.</em></h1>
+                <p class="hero-description">SecureFlow checks supported Python and JavaScript source code in your CI/CD
+                    workflow, then gives your pipeline a security decision it can enforce.</p>
+                <div class="hero-actions">
+                    <a class="button" href="/register">Get started <span aria-hidden="true">↗</span></a>
+                    <a class="text-link" href="https://github.com/Igna73M/secureflow">Explore the source <span
+                            aria-hidden="true">→</span></a>
+                </div>
+                <p class="hero-note">Open source · MIT licensed · Private scan history</p>
+            </div>
+
+            <div class="decision-panel"
+                aria-label="SecureFlow decision model: PASS permits promotion; FAIL and ERROR block promotion">
+                <div class="decision-panel-top">
+                    <span class="panel-kicker">GATE DECISION</span>
+                    <span class="panel-context"><span aria-hidden="true"></span> POLICY OUTCOME</span>
+                </div>
+                <div class="decision-list">
+                    <div class="decision-row pass-row"><span class="decision-icon" aria-hidden="true">✓</span><span
+                            class="decision-name">PASS</span><span class="decision-description">Promotion
+                            permitted</span><span class="decision-state">ALLOW</span></div>
+                    <div class="decision-row fail-row"><span class="decision-icon" aria-hidden="true">!</span><span
+                            class="decision-name">FAIL</span><span class="decision-description">Blocking
+                            findings</span><span class="decision-state">BLOCK</span></div>
+                    <div class="decision-row error-row"><span class="decision-icon" aria-hidden="true">×</span><span
+                            class="decision-name">ERROR</span><span class="decision-description">Assessment
+                            incomplete</span><span class="decision-state">BLOCK</span></div>
+                </div>
+                <div class="panel-footnote"><span aria-hidden="true">↳</span> Only a complete, policy-compliant scan can
+                    pass.</div>
+            </div>
+            <div class="hero-index" aria-hidden="true"><span>01</span><span class="index-line"></span><span>03</span>
             </div>
         </section>
 
+        <section class="scope-strip" aria-label="Supported scanners">
+            <div class="section-shell scope-inner">
+                <p>BUILT AROUND YOUR EXISTING TOOLCHAIN</p>
+                <ul>
+                    <li><span class="tool-symbol python-symbol">Py</span> Bandit</li>
+                    <li><span class="tool-symbol semgrep-symbol">S</span> Semgrep</li>
+                    <li><span class="tool-symbol eslint-symbol">E</span> ESLint</li>
+                    <li class="scope-caption">Python <span>·</span> JavaScript <span>·</span> CI/CD</li>
+                </ul>
+            </div>
+        </section>
 
-        <section class="panel" id="upload-panel">
-            <div class="panel-heading">
-                <div>
-                    <h2>Scan source file</h2>
-                    <p class="muted">
-                        Upload a Python or JavaScript source file for static security analysis.
-                        The source is analyzed, not executed.
+        <section class="section-shell capabilities section-space" id="capabilities"
+            aria-labelledby="capabilities-title">
+            <div class="section-heading">
+                <p class="eyebrow">A SMALL, EXPLICIT SECURITY GATE</p>
+                <h2 id="capabilities-title">From scanner output<br>to a decision your pipeline can use.</h2>
+                <p>SecureFlow brings configured scanner checks into one consistent, fail-closed result.</p>
+            </div>
+            <div class="capability-grid">
+                <article class="capability"><span class="capability-number">01</span>
+                    <h3>Scan supported source</h3>
+                    <p>Bandit checks Python. JavaScript checks run through Semgrep and ESLint. The current CLI selects
+                        <code>.py</code>, <code>.js</code>, <code>.cjs</code>, and <code>.mjs</code> files.
                     </p>
-                </div>
+                </article>
+                <article class="capability"><span class="capability-number">02</span>
+                    <h3>Normalize findings</h3>
+                    <p>Scanner-specific output is mapped to shared finding fields, including severity, source location,
+                        and whether a finding blocks promotion.</p>
+                </article>
+                <article class="capability"><span class="capability-number">03</span>
+                    <h3>Evaluate policy</h3>
+                    <p>Required checks and blocking findings feed a structured JSON report with a distinct decision and
+                        CLI exit status.</p>
+                </article>
+                <article class="capability"><span class="capability-number">04</span>
+                    <h3>Keep a scan record</h3>
+                    <p>The local API can scan one uploaded file or store a submitted report in SQLite. Accounts keep
+                        scan history private; submitted reports remain unverified.</p>
+                </article>
             </div>
+            <a class="inline-link" href="https://github.com/Igna73M/secureflow/blob/master/docs/architecture.md">Read
+                the architecture <span aria-hidden="true">→</span></a>
+        </section>
 
-            <form id="upload-form">
-                <label for="python-file">Source file (.py, .js, .cjs, .mjs)</label>
-                <div class="upload-controls">
-                    <input id="python-file" name="source-file" type="file"
-                        accept=".py,.js,.cjs,.mjs,text/x-python,text/javascript" required> <button id="upload-button"
-                        type="submit">Scan file</button>
+        <section class="workflow-band" id="workflow" aria-labelledby="workflow-title">
+            <div class="section-shell workflow-content">
+                <div class="workflow-heading">
+                    <p class="eyebrow">FOUR STEPS. ONE ENFORCEABLE OUTCOME.</p>
+                    <h2 id="workflow-title">A gate that knows<br>when it cannot decide.</h2>
                 </div>
-                <p class="muted">Maximum file size: 100 KiB.</p>
-            </form>
-
-            <section id="upload-result" class="upload-result" aria-live="polite" hidden></section>
+                <ol class="workflow-list">
+                    <li><span class="step-marker">01</span>
+                        <div>
+                            <h3>Scan source</h3>
+                            <p>Run the checks for supported Python or JavaScript files.</p>
+                        </div>
+                    </li>
+                    <li><span class="step-marker">02</span>
+                        <div>
+                            <h3>Normalize findings</h3>
+                            <p>Bring scanner results into a consistent structure.</p>
+                        </div>
+                    </li>
+                    <li><span class="step-marker">03</span>
+                        <div>
+                            <h3>Evaluate policy</h3>
+                            <p>Require complete checks and assess blocking findings.</p>
+                        </div>
+                    </li>
+                    <li><span class="step-marker">04</span>
+                        <div>
+                            <h3>Decide promotion</h3>
+                            <p>Permit promotion only when the overall result is PASS.</p>
+                        </div>
+                    </li>
+                </ol>
+            </div>
         </section>
 
-
-        <p id="status-message" class="status-message" role="status">
-            Loading scan history…
-        </p>
-
-        <section class="stats" aria-label="Scan statistics">
-            <article class="stat-card">
-                <p>Total scans</p>
-                <strong id="total-scans">—</strong>
-            </article>
-            <article class="stat-card">
-                <p>Passed</p>
-                <strong id="passed-scans" class="pass-text">—</strong>
-            </article>
-            <article class="stat-card">
-                <p>Failed</p>
-                <strong id="failed-scans" class="fail-text">—</strong>
-            </article>
-            <article class="stat-card">
-                <p>Errors</p>
-                <strong id="error-scans">—</strong>
-            </article>
+        <section class="section-shell trust-section section-space" id="trust" aria-labelledby="trust-title">
+            <div class="trust-mark" aria-hidden="true"><span></span></div>
+            <div class="trust-copy">
+                <p class="eyebrow">TRANSPARENT BY DESIGN</p>
+                <h2 id="trust-title">An error is not a green light.</h2>
+                <p>Missing checks, invalid results, and scanner errors produce ERROR. Both ERROR and FAIL deny
+                    promotion. A PASS means only that the configured checks completed without policy-blocking findings;
+                    it does not prove code is vulnerability-free or make this project production-ready.</p>
+                <div class="trust-links"><a
+                        href="https://github.com/Igna73M/secureflow/blob/master/docs/threat-model.md">Threat model <span
+                            aria-hidden="true">↗</span></a><a
+                        href="https://github.com/Igna73M/secureflow/blob/master/docs/authentication-plan.md">Authentication
+                        plan <span aria-hidden="true">↗</span></a><a
+                        href="https://github.com/Igna73M/secureflow/blob/master/LICENSE">MIT license <span
+                            aria-hidden="true">↗</span></a></div>
+            </div>
         </section>
 
-        <section class="panel">
-            <div class="panel-heading">
+        <section class="closing-band" id="get-started" aria-labelledby="closing-title">
+            <div class="section-shell closing-content">
                 <div>
-                    <h2>Recent scans</h2>
-                    <p class="muted">Select a scan to inspect its findings.</p>
-                </div>
-            </div>
-            <div class="table-wrap">
-                <table>
-                    <thead>
-                        <tr>
-                            <th>ID</th>
-                            <th>Target</th>
-                            <th>Decision</th>
-                            <th>Promotion</th>
-                            <th>Created</th>
-                        </tr>
-                    </thead>
-                    <tbody id="scan-table">
-                        <tr>
-                            <td colspan="5">Loading…</td>
-                        </tr>
-                    </tbody>
-                </table>
+                    <p class="eyebrow">TRY THE CURRENT BUILD</p>
+                    <h2 id="closing-title">Explore the scan console.</h2>
+                    <p>Run a single-file scan and inspect the API's current local history view.</p>
+                </div><a class="button button-light" href="/console.html">Open scan console <span
+                        aria-hidden="true">↗</span></a>
             </div>
         </section>
-
-        <section class="panel" id="detail-panel">
-            <div class="panel-heading">
-                <div>
-                    <h2>Scan details</h2>
-                    <p class="muted" id="detail-subtitle">
-                        Select a scan from the history above.
-                    </p>
-                </div>
-            </div>
-            <div id="findings-container" class="findings-container">
-                <p class="empty-state">No scan selected.</p>
-            </div>
-        </section>
-
-        <footer>SecureFlow · Local security-gate prototype</footer>
     </main>
+
+    <footer class="site-footer">
+        <div class="section-shell footer-content">
+            <a class="brand footer-brand" href="/" aria-label="SecureFlow home"><span class="brand-mark"
+                    aria-hidden="true"><span></span></span><span>secureflow</span></a>
+            <p>Open source security gate for supported source code.</p>
+            <nav aria-label="Footer navigation"><a href="https://github.com/Igna73M/secureflow">GitHub</a><a
+                    href="https://github.com/Igna73M/secureflow/blob/master/README.md">Documentation</a><a
+                    href="https://github.com/Igna73M/secureflow/blob/master/docs/threat-model.md">Threat model</a><a
+                    href="https://github.com/Igna73M/secureflow/blob/master/LICENSE">MIT license</a></nav>
+            <span class="copyright">© 2026 SecureFlow contributors</span>
+        </div>
+    </footer>
+    <script src="/auth-nav.js" defer></script>
 </body>
 
 </html>

@@ -5,14 +5,17 @@
   "main": "index.js",
   "scripts": {
     "start": "node src/server.js",
-    "test": "node --test"
+    "test": "node --test",
+    "lint": "eslint src tests"
   },
   "keywords": [],
   "author": "",
   "license": "MIT",
   "dependencies": {
+    "argon2": "^0.45.1",
     "better-sqlite3": "^13.0.3",
-    "express": "^5.3.0"
+    "express": "^5.3.0",
+    "express-session": "^1.19.0"
   },
   "devDependencies": {
     "eslint": "^10.13.0",

@@ -1,6 +1,7 @@
 const path = require("node:path");
 const express = require("express");
 const db = require("./db");
+const { registerAuthRoutes } = require("./auth");
 
 const app = express();
 
@@ -8,13 +9,24 @@ const fs = require("node:fs/promises");
 const os = require("node:os");
 const { execFile } = require("node:child_process");
 const { promisify } = require("node:util");
+const { ScanCapacityError, scanLimiter } = require("./scan-limiter");
 
 const execFileAsync = promisify(execFile);
 
 app.disable("x-powered-by");
 app.use(express.json({ limit: "256kb", strict: true }));
 
-app.use(express.static(path.join(__dirname, "../../dashboard")));
+const auth = registerAuthRoutes(app, db);
+app.locals.scanLimiter = scanLimiter;
+
+app.get(["/login", "/register"], (req, res) => {
+    const page = req.path === "/login" ? "login.html" : "register.html";
+    res.status(200).sendFile(path.join(__dirname, "../../dashboard", page));
+});
+
+app.get("/console.html", auth.requireAuth, (req, res) => {
+    res.sendFile(path.join(__dirname, "../../dashboard/console.html"));
+});
 
 const VALID_DECISIONS = new Set(["PASS", "FAIL", "ERROR"]);
 const VALID_SEVERITIES = new Set([
@@ -24,6 +36,7 @@ const VALID_SEVERITIES = new Set([
     "LOW",
     "INFO",
 ]);
+const VALID_SCANNERS = new Set(["bandit", "semgrep", "eslint"]);
 
 function isNonEmptyString(value, maxLength) {
     return (
@@ -133,8 +146,8 @@ function validateScan(body) {
 }
 
 const insertScan = db.prepare(`
-  INSERT INTO scans (target, decision, promotion_allowed)
-  VALUES (?, ?, ?)
+    INSERT INTO scans (target, decision, promotion_allowed, user_id, verified)
+    VALUES (?, ?, ?, ?, ?)
 `);
 
 const insertFinding = db.prepare(`
@@ -145,11 +158,13 @@ const insertFinding = db.prepare(`
   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
 `);
 
-const insertScanWithFindings = db.transaction((body) => {
+const insertScanWithFindings = db.transaction((body, userId = null, verified = false) => {
     const scanResult = insertScan.run(
         body.target.trim(),
         body.decision,
-        body.promotion_allowed ? 1 : 0
+        body.promotion_allowed ? 1 : 0,
+        userId,
+        verified ? 1 : 0
     );
 
     const scanId = Number(scanResult.lastInsertRowid);
@@ -180,7 +195,7 @@ app.get("/health", (req, res) => {
     }
 });
 
-app.post("/api/scans", (req, res) => {
+app.post("/api/scans", auth.requireAuth, auth.csrfProtection, (req, res) => {
     const validationError = validateScan(req.body);
 
     if (validationError) {
@@ -188,11 +203,12 @@ app.post("/api/scans", (req, res) => {
     }
 
     try {
-        const id = insertScanWithFindings(req.body);
+        const id = insertScanWithFindings(req.body, req.authUser.id, false);
         return res.status(201).json({
             id,
             decision: req.body.decision,
             promotion_allowed: req.body.promotion_allowed,
+            verified: false,
         });
     } catch {
         return res.status(500).json({ error: "Could not save scan." });
@@ -208,7 +224,7 @@ const ALLOWED_UPLOAD_EXTENSIONS = new Set([
 ]);
 const PROJECT_ROOT = path.resolve(__dirname, "../..");
 
-app.post("/api/scan-upload", async (req, res) => {
+app.post("/api/scan-upload", auth.csrfProtection, async (req, res) => {
     const { filename, content } = req.body ?? {};
 
     if (
@@ -247,9 +263,34 @@ app.post("/api/scan-upload", async (req, res) => {
         });
     }
 
+    const abortController = new AbortController();
+    const abortOnDisconnect = () => {
+        if (!res.writableEnded) abortController.abort();
+    };
+    req.once("aborted", abortOnDisconnect);
+    res.once("close", abortOnDisconnect);
+
+    let releaseCapacity;
     let tempDir;
 
     try {
+        try {
+            releaseCapacity = await app.locals.scanLimiter.acquire(
+                abortController.signal
+            );
+        } catch (error) {
+            if (error instanceof ScanCapacityError) {
+                res.set("Retry-After", "1");
+                return res.status(503).json({
+                    error: "Scan capacity is temporarily full. Retry shortly.",
+                });
+            }
+            if (abortController.signal.aborted) return;
+            throw error;
+        }
+
+        if (abortController.signal.aborted) return;
+
         tempDir = await fs.mkdtemp(
             path.join(os.tmpdir(), "secureflow-upload-")
         );
@@ -271,11 +312,13 @@ app.post("/api/scan-upload", async (req, res) => {
                     timeout: 65000,
                     maxBuffer: 2_100_000,
                     windowsHide: true,
+                    signal: abortController.signal,
                 }
             );
 
             result = JSON.parse(stdout);
         } catch (error) {
+            if (abortController.signal.aborted) throw error;
             // FAIL and ERROR can produce nonzero exit codes with JSON output.
             try {
                 result = JSON.parse(error.stdout);
@@ -329,59 +372,133 @@ app.post("/api/scan-upload", async (req, res) => {
             });
         }
 
-        const id = insertScanWithFindings(scanRecord);
+        const ownerId = auth.getSessionUserId(req);
+        const id = insertScanWithFindings(scanRecord, ownerId, true);
 
         return res.status(201).json({
             id,
             target: scanRecord.target,
             decision: result.decision,
             promotion_allowed: result.promotion_allowed,
+            verified: true,
             errors: result.errors ?? [],
             findings,
         });
     } catch (error) {
-        console.error("Upload scan error:", error);
-
+        if (abortController.signal.aborted) return;
         return res.status(500).json({
             error: "Could not complete the uploaded-file scan.",
         });
     } finally {
+        req.removeListener("aborted", abortOnDisconnect);
+        res.removeListener("close", abortOnDisconnect);
         if (tempDir) {
             await fs.rm(tempDir, { recursive: true, force: true }).catch(() => { });
         }
+        releaseCapacity?.();
     }
 });
 
-app.get("/api/scans", (req, res) => {
-    const rawLimit = req.query.limit ?? "20";
-    const limit = Number(rawLimit);
-
-    if (
-        typeof rawLimit !== "string" ||
-        !/^\d+$/.test(rawLimit) ||
-        !Number.isSafeInteger(limit) ||
-        limit < 1 ||
-        limit > 100
-    ) {
-        return res.status(400).json({ error: "limit must be an integer from 1 to 100." });
+app.get("/api/scans", auth.requireAuth, (req, res) => {
+    const integerParam = (name, fallback, minimum, maximum) => {
+        const raw = req.query[name] ?? String(fallback);
+        if (typeof raw !== "string" || !/^\d+$/.test(raw)) return null;
+        const value = Number(raw);
+        return Number.isSafeInteger(value) && value >= minimum && value <= maximum
+            ? value
+            : null;
+    };
+    const page = integerParam("page", 1, 1, 1_000_000);
+    const limit = integerParam("limit", 20, 1, 50);
+    if (page === null || limit === null) {
+        return res.status(400).json({ error: "page must be 1 to 1000000 and limit must be 1 to 50." });
     }
 
+    const search = req.query.q ?? "";
+    if (typeof search !== "string" || search.length > 100 || search.trim().length > 100) {
+        return res.status(400).json({ error: "q must be at most 100 characters." });
+    }
+    const query = search.trim();
+
+    const decision = req.query.decision ?? "";
+    if (typeof decision !== "string" || (decision && !VALID_DECISIONS.has(decision))) {
+        return res.status(400).json({ error: "decision must be PASS, FAIL, or ERROR." });
+    }
+
+    const verification = req.query.verified ?? "all";
+    if (typeof verification !== "string" || !["all", "true", "false"].includes(verification)) {
+        return res.status(400).json({ error: "verified must be all, true, or false." });
+    }
+
+    const scanner = req.query.scanner ?? "";
+    if (typeof scanner !== "string" || (scanner && !VALID_SCANNERS.has(scanner))) {
+        return res.status(400).json({ error: "scanner must be bandit, semgrep, or eslint." });
+    }
+
+    const where = ["user_id = ?"];
+    const bindings = [req.authUser.id];
+    if (query) {
+        where.push("target LIKE ? ESCAPE '\\'");
+        bindings.push(`%${query.replace(/[\\%_]/g, "\\$&")}%`);
+    }
+    if (decision) {
+        where.push("decision = ?");
+        bindings.push(decision);
+    }
+    if (verification !== "all") {
+        where.push("verified = ?");
+        bindings.push(verification === "true" ? 1 : 0);
+    }
+    if (scanner) {
+        where.push("EXISTS (SELECT 1 FROM findings WHERE findings.scan_id = scans.id AND findings.scanner = ?)");
+        bindings.push(scanner);
+    }
+
+    const predicate = where.join(" AND ");
+    const total = db.prepare(`SELECT COUNT(*) AS count FROM scans WHERE ${predicate}`).get(...bindings).count;
+    const offset = (page - 1) * limit;
     const scans = db.prepare(`
-    SELECT id, target, decision, promotion_allowed, created_at
-    FROM scans
-    ORDER BY id DESC
-    LIMIT ?
-  `).all(limit);
+        SELECT id, target, decision, promotion_allowed, created_at, verified
+        FROM scans
+        WHERE ${predicate}
+        ORDER BY id DESC
+        LIMIT ? OFFSET ?
+    `).all(...bindings, limit, offset);
+
+    const totals = db.prepare(`
+        SELECT
+            COUNT(*) AS total,
+            COALESCE(SUM(CASE WHEN verified = 1 AND decision = 'PASS' THEN 1 ELSE 0 END), 0) AS pass,
+            COALESCE(SUM(CASE WHEN verified = 1 AND decision = 'FAIL' THEN 1 ELSE 0 END), 0) AS fail,
+            COALESCE(SUM(CASE WHEN verified = 1 AND decision = 'ERROR' THEN 1 ELSE 0 END), 0) AS error,
+            COALESCE(SUM(CASE WHEN verified = 0 THEN 1 ELSE 0 END), 0) AS unverified
+        FROM scans
+        WHERE user_id = ?
+    `).get(req.authUser.id);
 
     return res.json({
         scans: scans.map((scan) => ({
             ...scan,
             promotion_allowed: Boolean(scan.promotion_allowed),
+            verified: Boolean(scan.verified),
         })),
+        metrics: {
+            total: totals.total,
+            pass: totals.pass,
+            fail: totals.fail,
+            error: totals.error,
+            unverified: totals.unverified,
+        },
+        pagination: {
+            page,
+            limit,
+            total,
+            pages: Math.ceil(total / limit),
+        },
     });
 });
 
-app.get("/api/scans/:id", (req, res) => {
+app.get("/api/scans/:id", auth.requireAuth, (req, res) => {
     if (!/^[1-9]\d*$/.test(req.params.id)) {
         return res.status(400).json({ error: "id must be a positive integer." });
     }
@@ -393,10 +510,10 @@ app.get("/api/scans/:id", (req, res) => {
     }
 
     const scan = db.prepare(`
-    SELECT id, target, decision, promotion_allowed, created_at
+        SELECT id, target, decision, promotion_allowed, created_at, verified
     FROM scans
-    WHERE id = ?
-  `).get(id);
+        WHERE id = ? AND user_id = ?
+    `).get(id, req.authUser.id);
 
     if (!scan) {
         return res.status(404).json({ error: "Scan not found." });
@@ -412,12 +529,15 @@ app.get("/api/scans/:id", (req, res) => {
     return res.json({
         ...scan,
         promotion_allowed: Boolean(scan.promotion_allowed),
+        verified: Boolean(scan.verified),
         findings: findings.map((finding) => ({
             ...finding,
             blocking: Boolean(finding.blocking),
         })),
     });
 });
+
+app.use(express.static(path.join(__dirname, "../../dashboard")));
 
 // Malformed JSON and oversized payload handling.
 app.use((err, req, res, next) => {

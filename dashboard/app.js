@@ -8,12 +8,22 @@ const uploadForm = document.getElementById("upload-form");
 const pythonFileInput = document.getElementById("python-file");
 const uploadButton = document.getElementById("upload-button");
 const uploadResult = document.getElementById("upload-result");
-const latestDecisionTitle = document.getElementById("latest-decision-title");
-const latestDecisionSubtitle = document.getElementById("latest-decision-subtitle");
-const latestDecisionBadge = document.getElementById("latest-decision-badge");
-const latestDecisionReason = document.getElementById("latest-decision-reason");
+const filterForm = document.getElementById("history-filters");
+const previousButton = document.getElementById("previous-page");
+const nextButton = document.getElementById("next-page");
+const severityFilter = document.getElementById("severity-filter");
+const detailScannerFilter = document.getElementById("detail-scanner-filter");
+const detailTrust = document.getElementById("detail-trust");
+const detailOutcome = document.getElementById("detail-outcome");
 
+const PAGE_SIZE = 20;
+let csrfToken = null;
+let page = 1;
+let pages = 0;
+let scans = [];
 let selectedScanId = null;
+let activeScan = null;
+let currentFilters = { q: "", decision: "", verified: "all", scanner: "" };
 
 function makeElement(tag, className, text) {
     const element = document.createElement(tag);
@@ -22,355 +32,370 @@ function makeElement(tag, className, text) {
     return element;
 }
 
-async function fetchJson(url) {
+async function requestJson(url, options = {}) {
     const response = await fetch(url, {
-        headers: { Accept: "application/json" }
+        credentials: "same-origin",
+        headers: { Accept: "application/json", ...(options.headers || {}) },
+        ...options,
     });
-
-    if (!response.ok) {
-        throw new Error(`Request failed with HTTP ${response.status}`);
+    const data = response.status === 204 ? null : await response.json().catch(() => ({}));
+    if (response.status === 401) {
+        clearPrivateView();
+        window.location.assign("/login?expired=1");
+        throw new Error("Your session expired. Sign in again.");
     }
+    if (response.status === 403) {
+        clearPrivateView();
+        throw new Error("This request could not be verified. Refresh the page and try again.");
+    }
+    if (!response.ok) {
+        throw new Error(data?.error || `Request failed with HTTP ${response.status}.`);
+    }
+    return data;
+}
 
-    return response.json();
+function clearPrivateView() {
+    scans = [];
+    activeScan = null;
+    selectedScanId = null;
+    tableBody.replaceChildren();
+    findingsContainer.replaceChildren(makeElement("p", "empty-state", "Sign in to view scan details."));
+    detailOutcome.hidden = true;
+    detailTrust.hidden = true;
+    document.getElementById("detail-subtitle").textContent = "Session unavailable.";
+    document.querySelectorAll("#total-scans, #passed-scans, #failed-scans, #error-scans, #unverified-count")
+        .forEach((element) => { element.textContent = "—"; });
 }
 
 function formatDate(value) {
     const date = new Date(value);
-    return Number.isNaN(date.getTime())
-        ? "Unknown"
-        : date.toLocaleString();
+    if (Number.isNaN(date.getTime())) return "Unknown date";
+    return new Intl.DateTimeFormat(undefined, {
+        dateStyle: "medium",
+        timeStyle: "short",
+    }).format(date);
 }
 
-function decisionBadge(decision) {
-    return makeElement("span", `decision ${decision}`, decision);
+function updateMetrics(metrics) {
+    document.getElementById("total-scans").textContent = metrics.total;
+    document.getElementById("passed-scans").textContent = metrics.pass;
+    document.getElementById("failed-scans").textContent = metrics.fail;
+    document.getElementById("error-scans").textContent = metrics.error;
+    document.getElementById("unverified-count").textContent = `${metrics.unverified} unverified ${metrics.unverified === 1 ? "report" : "reports"} excluded from decisions`;
 }
 
-function updateStatistics(scans) {
-    document.getElementById("total-scans").textContent = scans.length;
-    document.getElementById("passed-scans").textContent = scans.filter(scan => scan.decision === "PASS").length;
-    document.getElementById("failed-scans").textContent = scans.filter(scan => scan.decision === "FAIL").length;
-    document.getElementById("error-scans").textContent = scans.filter(scan => scan.decision === "ERROR").length;
+function makeDecisionBadge(scan) {
+    if (!scan.verified) return makeElement("span", "decision UNVERIFIED", "Unverified");
+    return makeElement("span", `decision ${scan.decision}`, scan.decision);
 }
 
-
-function renderLatestDecision(scan) {
-    if (!scan) {
-        latestDecisionTitle.textContent = "No scans recorded";
-        latestDecisionSubtitle.textContent = "Run a scan to evaluate whether promotion is allowed.";
-        latestDecisionBadge.className = "decision ERROR";
-        latestDecisionBadge.textContent = "PENDING";
-        latestDecisionReason.textContent = "No security decision is available yet.";
-        return;
-    }
-
-    latestDecisionTitle.textContent = scan.promotion_allowed ? "Promotion allowed" : "Promotion blocked";
-
-    latestDecisionSubtitle.textContent = `Scan #${scan.id} · ${scan.target} · ${formatDate(scan.created_at)}`;
-
-    latestDecisionBadge.className = `decision ${scan.decision}`;
-    latestDecisionBadge.textContent = scan.decision;
-
-    if (scan.decision === "ERROR") {
-        latestDecisionReason.textContent = "The scan encountered an error. Resolve the error and rerun the scan.";
-    } else if (scan.decision === "FAIL") {
-        latestDecisionReason.textContent = "The security policy rejected this scan. Review the findings below before promotion.";
-    } else if (scan.promotion_allowed) {
-        latestDecisionReason.textContent = "The scan passed the configured security policy. Promotion is allowed.";
-    } else {
-        latestDecisionReason.textContent = "Promotion is blocked because the scan did not authorize it.";
-    }
-}
-
-function renderScans(scans) {
+function renderHistory() {
     tableBody.replaceChildren();
+    document.getElementById("history-count").textContent = `${scans.length} of ${document.getElementById("page-summary").dataset.total || 0}`;
 
     if (scans.length === 0) {
         const row = makeElement("tr");
-        const cell = makeElement("td", "empty-state", "No scans recorded yet.");
-        cell.colSpan = 5;
+        const cell = makeElement("td", "empty-state", currentFilters.q || currentFilters.decision || currentFilters.verified !== "all" || currentFilters.scanner
+            ? "No records match these filters. Adjust the search or filters and try again."
+            : "No scan activity yet. Upload a supported source file to run your first scan.");
+        cell.colSpan = 4;
         row.append(cell);
         tableBody.append(row);
         return;
     }
 
     for (const scan of scans) {
-        const row = makeElement("tr");
-        row.dataset.scanId = String(scan.id);
-        row.tabIndex = 0;
-        row.setAttribute("role", "button");
-        row.setAttribute("aria-label", `View scan ${scan.id}`);
-        row.setAttribute(
-            "aria-selected",
-            String(scan.id === selectedScanId)
-        );
+        const row = makeElement("tr", "activity-row");
+        row.setAttribute("aria-selected", String(scan.id === selectedScanId));
+        const targetCell = makeElement("td");
+        const openButton = makeElement("button", "target-button", scan.target);
+        openButton.type = "button";
+        openButton.setAttribute("aria-label", `Open ${scan.verified ? "verified scan" : "unverified report"} ${scan.target}`);
+        openButton.addEventListener("click", () => loadScanDetails(scan.id));
+        targetCell.append(openButton);
 
-        const idCell = makeElement("td", "", `#${scan.id}`);
-        const targetCell = makeElement("td", "", scan.target);
         const decisionCell = makeElement("td");
-        decisionCell.append(decisionBadge(scan.decision));
-
-        const promotionCell = makeElement(
-            "td",
-            scan.promotion_allowed ? "allowed" : "blocked",
-            scan.promotion_allowed ? "Allowed" : "Blocked"
-        );
-
-        const dateCell = makeElement("td", "", formatDate(scan.created_at));
-
-        row.append(idCell, targetCell, decisionCell, promotionCell, dateCell);
-
-        row.addEventListener("click", () => loadScanDetails(scan.id));
-        row.addEventListener("keydown", event => {
-            if (event.key === "Enter" || event.key === " ") {
-                event.preventDefault();
-                loadScanDetails(scan.id);
-            }
-        });
-
+        decisionCell.append(makeDecisionBadge(scan));
+        const verificationCell = makeElement("td");
+        verificationCell.append(makeElement("span", scan.verified ? "verification verified" : "verification unverified",
+            scan.verified ? "Scanner output" : "Submitted report"));
+        const dateCell = makeElement("td", "date-cell", formatDate(scan.created_at));
+        row.append(targetCell, decisionCell, verificationCell, dateCell);
         tableBody.append(row);
     }
 }
 
+function fillScannerFilter(findings) {
+    const selected = detailScannerFilter.value;
+    const scanners = [...new Set(findings.map((finding) => finding.scanner))].sort();
+    detailScannerFilter.replaceChildren(new Option("All scanners", ""));
+    for (const scanner of scanners) detailScannerFilter.add(new Option(scanner, scanner));
+    if (scanners.includes(selected)) detailScannerFilter.value = selected;
+}
+
 function renderFindings(scan) {
     findingsContainer.replaceChildren();
+    const severity = severityFilter.value;
+    const scanner = detailScannerFilter.value;
+    const findings = scan.findings.filter((finding) =>
+        (!severity || finding.severity === severity) &&
+        (!scanner || finding.scanner === scanner)
+    );
 
-    if (scan.findings.length === 0) {
-        findingsContainer.append(
-            makeElement("p", "empty-state", "No findings recorded for this scan.")
-        );
+    if (findings.length === 0) {
+        findingsContainer.append(makeElement("p", "empty-state",
+            scan.findings.length ? "No findings match these filters." : "No findings recorded for this scan."));
         return;
     }
 
-    for (const finding of scan.findings) {
-        const card = makeElement("article", "finding");
-        const heading = makeElement("h3", "", finding.title);
-        const rule = makeElement(
-            "p",
-            "",
-            `${finding.scanner} · ${finding.rule_id} · ${finding.severity}`
-        );
-        const location = makeElement(
-            "p",
-            "",
-            `Location: ${finding.file || "Unknown"}${finding.line ? `:${finding.line}` : ""}`
-        );
-        const message = makeElement("p", "", finding.message);
-        const blocking = makeElement(
-            "p",
-            finding.blocking ? "blocking" : "non-blocking",
-            finding.blocking ? "Blocking finding" : "Non-blocking finding"
-        );
-
-        card.append(heading, rule, location, message, blocking);
-        findingsContainer.append(card);
+    const severityRank = { CRITICAL: 0, HIGH: 1, MEDIUM: 2, LOW: 3, INFO: 4 };
+    findings.sort((left, right) => severityRank[left.severity] - severityRank[right.severity]);
+    for (const finding of findings) {
+        const item = makeElement("article", `finding finding-${finding.severity.toLowerCase()}`);
+        const metadata = makeElement("p", "finding-meta", `${finding.severity} · ${finding.scanner} · ${finding.rule_id}`);
+        const title = makeElement("h3", "", finding.title);
+        const location = makeElement("p", "finding-location",
+            `${finding.file || "Location unavailable"}${finding.line ? `:${finding.line}` : ""}`);
+        const message = makeElement("p", "finding-message", finding.message);
+        const blocking = makeElement("span", finding.blocking ? "finding-impact blocking" : "finding-impact non-blocking",
+            finding.blocking ? "Blocking" : "Non-blocking");
+        item.append(metadata, title, location, message, blocking);
+        findingsContainer.append(item);
     }
 }
 
+function renderDetails(scan) {
+    activeScan = scan;
+    selectedScanId = scan.id;
+    document.getElementById("detail-subtitle").textContent = `#${scan.id} · ${scan.target} · ${formatDate(scan.created_at)}`;
+    detailOutcome.hidden = false;
+    detailOutcome.className = scan.verified
+        ? `detail-outcome outcome-${scan.decision.toLowerCase()}`
+        : "detail-outcome outcome-unverified";
+    detailOutcome.textContent = scan.verified
+        ? `${scan.decision} · ${scan.promotion_allowed ? "Promotion allowed by configured checks" : "Promotion blocked by configured checks"}`
+        : `Submitted decision: ${scan.decision}. Not verified; this report cannot authorize promotion.`;
+    detailTrust.hidden = scan.verified;
+    detailTrust.textContent = scan.verified
+        ? ""
+        : "Unverified report. Its submitted decision is not scanner evidence and must not authorize promotion.";
+    fillScannerFilter(scan.findings);
+    renderFindings(scan);
+    renderHistory();
+}
+
 async function loadScanDetails(id) {
-    selectedScanId = id;
-    statusMessage.textContent = `Loading scan #${id}…`;
-
-    for (const row of tableBody.querySelectorAll("[data-scan-id]")) {
-        row.setAttribute(
-            "aria-selected",
-            String(Number(row.dataset.scanId) === id)
-        );
-    }
-
+    statusMessage.textContent = `Loading scan ${id}…`;
     try {
-        const scan = await fetchJson(`/api/scans/${id}`);
-
-        document.getElementById("detail-subtitle").textContent =
-            `Scan #${scan.id} · ${scan.target} · ${formatDate(scan.created_at)}`;
-
-        renderFindings(scan);
-        statusMessage.textContent =
-            `Viewing scan #${id} — ${scan.decision}. ` +
-            `Promotion ${scan.promotion_allowed ? "allowed" : "blocked"}.`;
+        const scan = await requestJson(`/api/scans/${encodeURIComponent(id)}`);
+        renderDetails(scan);
+        statusMessage.textContent = scan.verified
+            ? `Loaded scanner output for ${scan.target}.`
+            : `Loaded unverified submitted report for ${scan.target}.`;
     } catch (error) {
-        statusMessage.textContent = `Could not load scan details: ${error.message}`;
-        findingsContainer.replaceChildren(
-            makeElement("p", "empty-state", "Unable to load findings.")
-        );
+        if (error.message.startsWith("Your session expired")) return;
+        activeScan = null;
+        detailOutcome.hidden = true;
+        detailTrust.hidden = true;
+        document.getElementById("detail-subtitle").textContent = "Could not load this scan.";
+        findingsContainer.replaceChildren(makeElement("p", "empty-state", error.message));
+        statusMessage.textContent = error.message;
     }
+}
+
+function renderPageState(pagination) {
+    pages = pagination.pages;
+    document.getElementById("page-summary").textContent = pages
+        ? `Page ${pagination.page} of ${pages}`
+        : "No pages";
+    document.getElementById("page-summary").dataset.total = String(pagination.total);
+    document.getElementById("history-count").textContent = `${scans.length} of ${pagination.total}`;
+    previousButton.disabled = pagination.page <= 1;
+    nextButton.disabled = pagination.page >= pages;
 }
 
 async function loadHistory() {
     refreshButton.disabled = true;
     statusMessage.textContent = "Loading scan history…";
+    const parameters = new URLSearchParams({ page: String(page), limit: String(PAGE_SIZE) });
+    for (const [key, value] of Object.entries(currentFilters)) {
+        if (value && value !== "all") parameters.set(key, value);
+    }
 
     try {
-        const data = await fetchJson("/api/scans?limit=100");
-        const scans = data.scans;
+        const data = await requestJson(`/api/scans?${parameters}`);
+        scans = data.scans;
+        updateMetrics(data.metrics);
+        renderPageState(data.pagination);
+        renderHistory();
+        statusMessage.textContent = data.pagination.total
+            ? `Showing ${scans.length} of ${data.pagination.total} matching records.`
+            : (Object.values(currentFilters).some((value) => value && value !== "all")
+                ? "No records match the current filters."
+                : "No scan activity yet. Run a scan to start your history.");
 
-        updateStatistics(scans);
-        renderLatestDecision(scans[0] || null);
-        renderScans(scans);
-
-        statusMessage.textContent = `Loaded ${scans.length} recent scan${scans.length === 1 ? "" : "s"}.`;
-
-        if (selectedScanId !== null && scans.some(scan => scan.id === selectedScanId)) {
+        if (selectedScanId !== null && scans.some((scan) => scan.id === selectedScanId)) {
             await loadScanDetails(selectedScanId);
-        } else if (scans.length > 0) {
+        } else if (scans.length) {
             await loadScanDetails(scans[0].id);
         } else {
             selectedScanId = null;
-            document.getElementById("detail-subtitle").textContent =
-                "No scans available.";
-            findingsContainer.replaceChildren(
-                makeElement("p", "empty-state", "Run a scan to see findings here.")
-            );
+            activeScan = null;
+            detailOutcome.hidden = true;
+            detailTrust.hidden = true;
+            document.getElementById("detail-subtitle").textContent = "Select an activity record.";
+            findingsContainer.replaceChildren(makeElement("p", "empty-state", "No scan selected."));
         }
     } catch (error) {
-        statusMessage.textContent =
-            `Could not load scan history: ${error.message}`;
-        tableBody.replaceChildren();
-
-        const row = makeElement("tr");
-        const cell = makeElement(
-            "td",
-            "empty-state",
-            "API unavailable. Check that the SecureFlow server is running."
-        );
-        cell.colSpan = 5;
-        row.append(cell);
-        tableBody.append(row);
+        if (error.message.startsWith("Your session expired")) return;
+        statusMessage.replaceChildren(document.createTextNode(`Could not load scan history: ${error.message} `));
+        const retry = makeElement("button", "inline-retry", "Retry");
+        retry.type = "button";
+        retry.addEventListener("click", loadHistory, { once: true });
+        statusMessage.append(retry);
+        scans = [];
+        renderHistory();
+        updateMetrics({ total: "—", pass: "—", fail: "—", error: "—", unverified: "—" });
     } finally {
         refreshButton.disabled = false;
     }
 }
 
-
 function renderUploadResult(result) {
     uploadResult.replaceChildren();
     uploadResult.hidden = false;
-
-    const heading = makeElement(
-        "h3",
-        result.decision === "PASS"
-            ? "pass-text"
-            : result.decision === "FAIL"
-                ? "fail-text"
-                : "",
-        `Scan result: ${result.decision}`
+    const verified = result.verified === true;
+    const summary = makeElement("div", "upload-summary");
+    summary.append(
+        makeElement("p", "eyebrow", verified ? "SCANNER OUTPUT" : "UNVERIFIED RESULT"),
+        makeElement("h3", `result-heading result-${result.decision.toLowerCase()}`, `${result.decision} · ${result.target || "Upload scan"}`),
+        makeElement("p", "muted", verified
+            ? (result.promotion_allowed ? "The configured checks completed and allowed promotion." : "The configured checks completed but blocked promotion.")
+            : "This result was not verified by the scanner engine.")
     );
-
-    const summary = makeElement(
-        "p",
-        "",
-        result.promotion_allowed
-            ? "Promotion allowed."
-            : "Promotion blocked."
-    );
-
-    uploadResult.append(heading, summary);
-
-    if (Array.isArray(result.errors)) {
-        for (const error of result.errors) {
-            uploadResult.append(makeElement("p", "fail-text", error));
+    uploadResult.append(summary);
+    if (!verified) {
+        uploadResult.append(makeElement("p", "trust-note", "Do not use this result to authorize promotion."));
+    }
+    for (const error of (Array.isArray(result.errors) ? result.errors : [])) {
+        uploadResult.append(makeElement("p", "fail-text", error));
+    }
+    if (Array.isArray(result.findings) && result.findings.length) {
+        const resultList = makeElement("div", "upload-findings");
+        for (const finding of result.findings) {
+            const item = makeElement("article", "finding");
+            item.append(
+                makeElement("p", "finding-meta", `${finding.severity} · ${finding.scanner} · ${finding.rule_id}`),
+                makeElement("h4", "", finding.title || finding.rule_id),
+                makeElement("p", "finding-message", finding.message)
+            );
+            resultList.append(item);
         }
-    }
-
-    const findings = Array.isArray(result.findings)
-        ? result.findings
-        : [];
-
-    if (findings.length === 0) {
-        uploadResult.append(
-            makeElement("p", "empty-state", "No findings returned.")
-        );
-        return;
-    }
-
-    for (const finding of findings) {
-        const card = makeElement("article", "finding");
-        card.append(
-            makeElement("h4", "", finding.title || finding.rule_id),
-            makeElement(
-                "p",
-                "",
-                `${finding.scanner} · ${finding.rule_id} · ${finding.severity}`
-            ),
-            makeElement(
-                "p",
-                "",
-                `Location: ${finding.file || "Unknown"}${finding.line ? `:${finding.line}` : ""
-                }`
-            ),
-            makeElement("p", "", finding.message || ""),
-            makeElement(
-                "p",
-                finding.blocking ? "blocking" : "non-blocking",
-                finding.blocking ? "Blocking finding" : "Non-blocking finding"
-            )
-        );
-        uploadResult.append(card);
+        uploadResult.append(resultList);
+    } else {
+        uploadResult.append(makeElement("p", "empty-state", "No findings were returned."));
     }
 }
 
-uploadForm.addEventListener("submit", async event => {
+filterForm.addEventListener("submit", (event) => {
     event.preventDefault();
+    currentFilters = {
+        q: document.getElementById("search-input").value.trim(),
+        decision: document.getElementById("decision-filter").value,
+        verified: document.getElementById("verification-filter").value,
+        scanner: document.getElementById("scanner-filter").value,
+    };
+    page = 1;
+    loadHistory();
+});
 
+previousButton.addEventListener("click", () => {
+    if (page > 1) {
+        page -= 1;
+        loadHistory();
+    }
+});
+nextButton.addEventListener("click", () => {
+    if (page < pages) {
+        page += 1;
+        loadHistory();
+    }
+});
+refreshButton.addEventListener("click", loadHistory);
+severityFilter.addEventListener("change", () => activeScan && renderFindings(activeScan));
+detailScannerFilter.addEventListener("change", () => activeScan && renderFindings(activeScan));
+
+document.getElementById("logout-button").addEventListener("click", async (event) => {
+    const button = event.currentTarget;
+    button.disabled = true;
+    try {
+        await requestJson("/api/auth/logout", {
+            method: "POST",
+            headers: { "Content-Type": "application/json", "X-CSRF-Token": csrfToken },
+            body: "{}",
+        });
+        window.location.assign("/");
+    } catch (error) {
+        statusMessage.textContent = error.message;
+        button.disabled = false;
+    }
+});
+
+uploadForm.addEventListener("submit", async (event) => {
+    event.preventDefault();
     const file = pythonFileInput.files?.[0];
-
     if (!file) {
         uploadResult.hidden = false;
         uploadResult.textContent = "Choose a source file first.";
         return;
     }
-    const allowedExtensions = [".py", ".js", ".cjs", ".mjs"];
     const extension = file.name.slice(file.name.lastIndexOf(".")).toLowerCase();
-
-    if (!allowedExtensions.includes(extension)) {
+    if (![".py", ".js", ".cjs", ".mjs"].includes(extension)) {
         uploadResult.hidden = false;
-        uploadResult.textContent =
-            "Choose a .py, .js, .cjs, or .mjs source file.";
+        uploadResult.textContent = "Choose a .py, .js, .cjs, or .mjs source file.";
         return;
     }
-
     if (file.size === 0 || file.size > 100 * 1024) {
         uploadResult.hidden = false;
-        uploadResult.textContent =
-            "Choose a non-empty file no larger than 100 KiB.";
+        uploadResult.textContent = "Choose a non-empty file no larger than 100 KiB.";
         return;
     }
 
     uploadButton.disabled = true;
     uploadResult.hidden = false;
     uploadResult.textContent = "Scanning file…";
-
     try {
-        const content = await file.text();
-
-        const response = await fetch("/api/scan-upload", {
+        const result = await requestJson("/api/scan-upload", {
             method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-                Accept: "application/json"
-            },
-            body: JSON.stringify({
-                filename: file.name,
-                content
-            })
+            headers: { "Content-Type": "application/json", "X-CSRF-Token": csrfToken },
+            body: JSON.stringify({ filename: file.name, content: await file.text() }),
         });
-
-        const result = await response.json();
-
-        if (!response.ok) {
-            throw new Error(result.error || `Request failed: HTTP ${response.status}`);
-        }
-
         renderUploadResult(result);
+        page = 1;
         await loadHistory();
     } catch (error) {
-        uploadResult.replaceChildren(
-            makeElement("p", "fail-text", `Scan failed: ${error.message}`)
-        );
+        if (error.message.startsWith("Your session expired")) return;
+        uploadResult.replaceChildren(makeElement("p", "fail-text", `Scan failed: ${error.message}`));
         uploadResult.hidden = false;
     } finally {
         uploadButton.disabled = false;
     }
 });
 
-refreshButton.addEventListener("click", loadHistory);
-loadHistory();
+async function initializeDashboard() {
+    try {
+        const auth = await requestJson("/api/auth/me");
+        if (!auth.authenticated) {
+            window.location.assign("/login");
+            return;
+        }
+        csrfToken = auth.csrfToken;
+        document.getElementById("account-email").textContent = auth.user.email;
+        await loadHistory();
+    } catch (error) {
+        if (error.message.startsWith("Your session expired")) return;
+        statusMessage.textContent = `Could not verify the signed-in session: ${error.message}`;
+    }
+}
+
+initializeDashboard();

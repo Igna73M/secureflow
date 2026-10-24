@@ -1,0 +1,142 @@
+.auth-page {
+    min-height: 100vh;
+    background-image: linear-gradient(90deg, rgb(155 226 183 / 2.5%) 1px, transparent 1px), radial-gradient(ellipse at 82% 12%, rgb(89 128 103 / 24%), transparent 44%);
+    background-size: 88px 100%, auto;
+}
+
+.auth-header {
+    grid-template-columns: 1fr auto;
+}
+
+.auth-layout {
+    display: grid;
+    min-height: calc(100vh - 79px);
+    place-items: center;
+    padding: 48px 24px 72px;
+}
+
+.auth-content {
+    width: min(100%, 440px);
+    padding: 38px 40px;
+    border: 1px solid var(--line);
+    border-top: 3px solid var(--green);
+    background: rgb(24 34 30 / 96%);
+    box-shadow: 18px 18px 0 rgb(9 15 12 / 25%);
+}
+
+.auth-content h1 {
+    margin: 0 0 12px;
+    font-family: Georgia, "Times New Roman", serif;
+    font-size: 34px;
+    font-weight: 500;
+    line-height: 1.12;
+}
+
+.auth-intro,
+.auth-switch,
+.auth-hint {
+    color: var(--muted);
+    line-height: 1.6;
+}
+
+.auth-intro {
+    margin: 0 0 28px;
+    font-size: 14px;
+}
+
+#auth-form {
+    display: grid;
+    gap: 10px;
+}
+
+#auth-form label {
+    margin-top: 8px;
+    color: var(--ink);
+    font-size: 13px;
+    font-weight: 650;
+}
+
+#auth-form input {
+    width: 100%;
+    min-height: 46px;
+    padding: 10px 12px;
+    border: 1px solid #526156;
+    border-radius: 2px;
+    background: #111a15;
+    color: var(--ink);
+    font: inherit;
+}
+
+#auth-form input:focus-visible {
+    outline: 2px solid var(--green);
+    outline-offset: 2px;
+}
+
+.auth-hint {
+    margin: -2px 0 2px;
+    font-size: 12px;
+}
+
+.auth-error {
+    margin: 8px 0 0;
+    padding: 10px 12px;
+    border-left: 3px solid var(--red);
+    background: rgb(239 170 160 / 9%);
+    color: var(--red);
+    font-size: 13px;
+    line-height: 1.5;
+}
+
+.auth-submit {
+    width: 100%;
+    margin-top: 14px;
+    cursor: pointer;
+    font: inherit;
+}
+
+.auth-submit:disabled {
+    cursor: wait;
+    opacity: .7;
+}
+
+.auth-switch {
+    margin: 22px 0 0;
+    font-size: 13px;
+}
+
+.auth-switch a {
+    color: var(--green);
+    text-decoration: underline;
+    text-underline-offset: 3px;
+}
+
+.auth-logout {
+    border: 0;
+    background: transparent;
+    color: var(--muted);
+    font: inherit;
+    cursor: pointer;
+}
+
+.auth-logout:hover {
+    color: var(--ink);
+}
+
+[hidden] {
+    display: none !important;
+}
+
+@media (max-width: 560px) {
+    .auth-layout {
+        min-height: calc(100vh - 65px);
+        padding: 28px 18px 48px;
+    }
+
+    .auth-content {
+        padding: 30px 24px;
+    }
+
+    .auth-content h1 {
+        font-size: 30px;
+    }
+}

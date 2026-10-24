@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="color-scheme" content="dark">
+    <title>Sign in | SecureFlow</title>
+    <link rel="stylesheet" href="/home.css">
+    <link rel="stylesheet" href="/auth.css">
+    <script src="/auth-page.js" defer></script>
+</head>
+
+<body class="auth-page" data-auth-mode="login">
+    <a class="skip-link" href="#main">Skip to content</a>
+    <header class="site-header auth-header">
+        <a class="brand" href="/" aria-label="SecureFlow home">
+            <span class="brand-mark" aria-hidden="true"><span></span></span><span>secureflow</span>
+        </a>
+        <a class="sign-in" href="/register">Create account</a>
+    </header>
+    <main id="main" class="auth-layout">
+        <section class="auth-content" aria-labelledby="auth-title">
+            <p class="eyebrow">SECUREFLOW ACCOUNT</p>
+            <h1 id="auth-title">Sign in to SecureFlow</h1>
+            <p class="auth-intro">Access your private scan history and run source checks.</p>
+            <form id="auth-form" novalidate>
+                <label for="email">Email address</label>
+                <input id="email" name="email" type="email" autocomplete="email" maxlength="254" required>
+                <label for="password">Password</label>
+                <input id="password" name="password" type="password" autocomplete="current-password" maxlength="128"
+                    required>
+                <p id="form-error" class="auth-error" role="alert" aria-live="assertive" hidden></p>
+                <button class="button auth-submit" type="submit">Sign in</button>
+            </form>
+            <p class="auth-switch">New to SecureFlow? <a href="/register">Create an account</a></p>
+        </section>
+    </main>
+</body>
+
+</html>
