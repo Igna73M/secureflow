@@ -24,9 +24,11 @@ app.get(["/login", "/register"], (req, res) => {
     res.status(200).sendFile(path.join(__dirname, "../../dashboard", page));
 });
 
-app.get("/console.html", auth.requireAuth, (req, res) => {
-    res.sendFile(path.join(__dirname, "../../dashboard/console.html"));
+app.get(["/console.html", "/console/overview", "/console/history", "/console/new-scan"], auth.requireAuth, (req, res) => {
+    res.sendFile(path.join(__dirname, "../../dashboard/dist/console-app.html"));
 });
+
+app.use("/console-assets", express.static(path.join(__dirname, "../../dashboard/dist")));
 
 const VALID_DECISIONS = new Set(["PASS", "FAIL", "ERROR"]);
 const VALID_SEVERITIES = new Set([

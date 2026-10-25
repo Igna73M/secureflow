@@ -38,7 +38,7 @@ form.addEventListener("submit", async event => {
         const current = await fetch("/api/auth/me", { credentials: "same-origin" });
         const auth = await current.json();
         if (auth.authenticated) {
-            window.location.assign("/console.html");
+            window.location.assign("/console/overview");
             return;
         }
         const response = await fetch(`/api/auth/${mode}`, {
@@ -53,7 +53,7 @@ form.addEventListener("submit", async event => {
         });
         const result = response.status === 204 ? {} : await response.json();
         if (!response.ok) throw new Error(result.error || "Authentication could not be completed.");
-        window.location.assign("/console.html");
+        window.location.assign("/console/overview");
     } catch (error) {
         showError(error.message || "Authentication could not be completed.");
         submitButton.disabled = false;

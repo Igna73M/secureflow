@@ -101,7 +101,7 @@ The target must be an existing directory containing at least one supported `.py`
 ## Requirements
 
 - Python 3.14 (the version used by the repository's GitHub Actions workflow).
-- Node.js 22 and npm for API development and API tests.
+- Node.js 22 and npm for API development, API tests, and the React/Tailwind dashboard build.
 - Git to clone the repository.
 - The Python packages in [`requirements.txt`](requirements.txt), including Bandit, pytest, and Semgrep.
 - API packages installed from [`api/package-lock.json`](api/package-lock.json), including Express, `better-sqlite3`, Argon2, `express-session`, and ESLint.
@@ -135,6 +135,14 @@ cd ..
 ```
 
 Python-only scans need the Python dependencies. Scanning JavaScript directories also needs the API's npm dependencies for ESLint.
+
+Build the React and Tailwind dashboard before starting the API:
+
+```bash
+make build-dashboard
+```
+
+The authenticated console routes (`/console/overview`, `/console/history`, and `/console/new-scan`) serve this generated dashboard. Its frontend dependencies and production build live in `dashboard/`; the existing home, login, and registration pages remain static HTML.
 
 ## Scan a directory
 

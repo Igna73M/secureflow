@@ -15,13 +15,50 @@ const severityFilter = document.getElementById("severity-filter");
 const detailScannerFilter = document.getElementById("detail-scanner-filter");
 const detailTrust = document.getElementById("detail-trust");
 const detailOutcome = document.getElementById("detail-outcome");
+const recentScanList = document.getElementById("recent-scan-list");
+
+const consoleViews = {
+    overview: {
+        title: "Scan overview",
+        description: "Your account's verified scanner outcomes at a glance.",
+    },
+    history: {
+        title: "Scan history",
+        description: "Search your reports and inspect scan findings.",
+    },
+    "new-scan": {
+        title: "New scan",
+        description: "Upload a supported source file for on-demand analysis.",
+    },
+};
+const routeViews = {
+    "/console/overview": "overview",
+    "/console/history": "history",
+    "/console/new-scan": "new-scan",
+};
+const requestedView = routeViews[window.location.pathname]
+    || new URLSearchParams(window.location.search).get("view");
+const activeView = Object.hasOwn(consoleViews, requestedView) ? requestedView : "overview";
+const requestedScanId = Number(new URLSearchParams(window.location.search).get("scan"));
+document.querySelectorAll("[data-page-section]").forEach((section) => {
+    section.hidden = section.dataset.pageSection !== activeView;
+});
+document.querySelectorAll(".workspace-nav .nav-item").forEach((link) => {
+    const isActive = routeViews[new URL(link.href).pathname] === activeView;
+    link.classList.toggle("active", isActive);
+    if (isActive) link.setAttribute("aria-current", "page");
+    else link.removeAttribute("aria-current");
+});
+document.getElementById("page-title").textContent = consoleViews[activeView].title;
+document.getElementById("page-description").textContent = consoleViews[activeView].description;
+if (activeView === "new-scan") refreshButton.hidden = true;
 
 const PAGE_SIZE = 20;
 let csrfToken = null;
 let page = 1;
 let pages = 0;
 let scans = [];
-let selectedScanId = null;
+let selectedScanId = Number.isSafeInteger(requestedScanId) && requestedScanId > 0 ? requestedScanId : null;
 let activeScan = null;
 let currentFilters = { q: "", decision: "", verified: "all", scanner: "" };
 
@@ -87,6 +124,34 @@ function updateMetrics(metrics) {
 function makeDecisionBadge(scan) {
     if (!scan.verified) return makeElement("span", "decision UNVERIFIED", "Unverified");
     return makeElement("span", `decision ${scan.decision}`, scan.decision);
+}
+
+function renderOverviewActivity() {
+    recentScanList.replaceChildren();
+    if (scans.length === 0) {
+        const row = makeElement("tr");
+        const cell = makeElement("td", "empty-state", "No scan activity yet. Start a scan to see results here.");
+        cell.colSpan = 4;
+        row.append(cell);
+        recentScanList.append(row);
+        return;
+    }
+
+    for (const scan of scans.slice(0, 5)) {
+        const row = makeElement("tr", "activity-row");
+        const targetCell = makeElement("td");
+        const targetLink = makeElement("a", "target-link", scan.target);
+        targetLink.href = `/console/history?scan=${encodeURIComponent(scan.id)}`;
+        targetLink.setAttribute("aria-label", `Inspect scan ${scan.target}`);
+        targetCell.append(targetLink);
+        const decisionCell = makeElement("td");
+        decisionCell.append(makeDecisionBadge(scan));
+        const verificationCell = makeElement("td");
+        verificationCell.append(makeElement("span", scan.verified ? "verification verified" : "verification unverified",
+            scan.verified ? "Scanner output" : "Submitted report"));
+        row.append(targetCell, decisionCell, verificationCell, makeElement("td", "date-cell", formatDate(scan.created_at)));
+        recentScanList.append(row);
+    }
 }
 
 function renderHistory() {
@@ -227,6 +292,7 @@ async function loadHistory() {
         scans = data.scans;
         updateMetrics(data.metrics);
         renderPageState(data.pagination);
+        renderOverviewActivity();
         renderHistory();
         statusMessage.textContent = data.pagination.total
             ? `Showing ${scans.length} of ${data.pagination.total} matching records.`
@@ -234,17 +300,19 @@ async function loadHistory() {
                 ? "No records match the current filters."
                 : "No scan activity yet. Run a scan to start your history.");
 
-        if (selectedScanId !== null && scans.some((scan) => scan.id === selectedScanId)) {
-            await loadScanDetails(selectedScanId);
-        } else if (scans.length) {
-            await loadScanDetails(scans[0].id);
-        } else {
-            selectedScanId = null;
-            activeScan = null;
-            detailOutcome.hidden = true;
-            detailTrust.hidden = true;
-            document.getElementById("detail-subtitle").textContent = "Select an activity record.";
-            findingsContainer.replaceChildren(makeElement("p", "empty-state", "No scan selected."));
+        if (activeView === "history") {
+            if (selectedScanId !== null && scans.some((scan) => scan.id === selectedScanId)) {
+                await loadScanDetails(selectedScanId);
+            } else if (scans.length) {
+                await loadScanDetails(scans[0].id);
+            } else {
+                selectedScanId = null;
+                activeScan = null;
+                detailOutcome.hidden = true;
+                detailTrust.hidden = true;
+                document.getElementById("detail-subtitle").textContent = "Select an activity record.";
+                findingsContainer.replaceChildren(makeElement("p", "empty-state", "No scan selected."));
+            }
         }
     } catch (error) {
         if (error.message.startsWith("Your session expired")) return;
@@ -254,6 +322,7 @@ async function loadHistory() {
         retry.addEventListener("click", loadHistory, { once: true });
         statusMessage.append(retry);
         scans = [];
+        renderOverviewActivity();
         renderHistory();
         updateMetrics({ total: "—", pass: "—", fail: "—", error: "—", unverified: "—" });
     } finally {
@@ -372,7 +441,7 @@ uploadForm.addEventListener("submit", async (event) => {
         });
         renderUploadResult(result);
         page = 1;
-        await loadHistory();
+        if (activeView !== "new-scan") await loadHistory();
     } catch (error) {
         if (error.message.startsWith("Your session expired")) return;
         uploadResult.replaceChildren(makeElement("p", "fail-text", `Scan failed: ${error.message}`));
@@ -380,6 +449,14 @@ uploadForm.addEventListener("submit", async (event) => {
     } finally {
         uploadButton.disabled = false;
     }
+});
+
+pythonFileInput.addEventListener("change", () => {
+    const file = pythonFileInput.files?.[0];
+    document.getElementById("file-selection").textContent = file
+        ? `${file.name} · ${(file.size / 1024).toFixed(file.size < 1024 ? 2 : 1)} KiB`
+        : "No file selected";
+    uploadResult.hidden = true;
 });
 
 async function initializeDashboard() {
@@ -391,7 +468,8 @@ async function initializeDashboard() {
         }
         csrfToken = auth.csrfToken;
         document.getElementById("account-email").textContent = auth.user.email;
-        await loadHistory();
+        if (activeView === "new-scan") statusMessage.textContent = "Ready to scan a source file.";
+        else await loadHistory();
     } catch (error) {
         if (error.message.startsWith("Your session expired")) return;
         statusMessage.textContent = `Could not verify the signed-in session: ${error.message}`;

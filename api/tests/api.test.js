@@ -130,19 +130,29 @@ test("health endpoint responds successfully", async () => {
 test("serves the public home and existing scan console", async () => {
     const home = await request(app).get("/");
     const consolePage = await request(app).get("/console.html");
+    const privateConsolePage = await request(app).get("/console/history");
 
     assert.equal(home.status, 200);
     assert.match(home.text, /Security decisions for every release/);
     assert.match(home.text, /Both ERROR and FAIL deny\s+promotion/);
     assert.equal(consolePage.status, 302);
     assert.equal(consolePage.headers.location, "/login");
+    assert.equal(privateConsolePage.status, 302);
+    assert.equal(privateConsolePage.headers.location, "/login");
     const signedInConsole = await agent.get("/console.html");
     assert.equal(signedInConsole.status, 200);
-    assert.match(signedInConsole.text, /id="upload-form"/);
-    assert.match(signedInConsole.text, /id="history-filters"/);
-    assert.match(signedInConsole.text, /id="previous-page"/);
-    assert.match(signedInConsole.text, /id="severity-filter"/);
-    assert.match(signedInConsole.text, /id="detail-scanner-filter"/);
+    assert.match(signedInConsole.text, /id="root"/);
+    const scriptPath = signedInConsole.text.match(/src="([^"]+\.js)"/)?.[1];
+    const stylesheetPath = signedInConsole.text.match(/href="([^"]+\.css)"/)?.[1];
+    assert.ok(scriptPath);
+    assert.ok(stylesheetPath);
+    assert.equal((await agent.get(scriptPath)).status, 200);
+    assert.equal((await agent.get(stylesheetPath)).status, 200);
+    for (const route of ["/console/overview", "/console/history", "/console/new-scan"]) {
+        const page = await agent.get(route);
+        assert.equal(page.status, 200);
+        assert.match(page.text, /id="root"/);
+    }
 });
 
 test("serves real accessible login and registration forms", async () => {

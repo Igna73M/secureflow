@@ -152,7 +152,7 @@ function registerAuthRoutes(app, db) {
         const userId = req.session?.userId;
         const authenticatedAt = req.session?.authenticatedAt;
         if (!Number.isSafeInteger(userId) || !Number.isSafeInteger(authenticatedAt)) {
-            if (req.path === "/console.html" && req.accepts("html")) {
+            if (["/console.html", "/console/overview", "/console/history", "/console/new-scan"].includes(req.path) && req.accepts("html")) {
                 return res.redirect(302, "/login");
             }
             return res.status(401).json({ error: "Authentication required." });

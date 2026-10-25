@@ -1,4 +1,4 @@
-.PHONY: ci test test-python test-api gate-test scan-engine
+.PHONY: ci test test-python test-api build-dashboard gate-test scan-engine
 
 ci: test gate-test scan-engine
 
@@ -7,8 +7,11 @@ test: test-python test-api
 test-python:
 	python -m pytest -v
 
-test-api:
+test-api: build-dashboard
 	cd api && npm test
+
+build-dashboard:
+	cd dashboard && npm install && npm run build
 
 gate-test:
 	python scripts/verify_gate.py
