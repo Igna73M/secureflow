@@ -6,40 +6,57 @@
 /* --- Design Tokens --- */
 :root {
     /* Color palette */
-    --color-primary: #2563EB;
-    --color-primary-hover: #1D4ED8;
-    --color-primary-light: #3B82F6;
-    --color-primary-glow: rgba(37, 99, 235, 0.35);
+    --color-primary: #1D4ED8;
+    --color-primary-hover: #1E40AF;
+    --color-primary-light: #1D4ED8;
+    --color-primary-glow: rgba(37, 99, 235, 0.18);
 
-    --color-accent: #EA580C;
-    --color-accent-hover: #C2410C;
-    --color-accent-glow: rgba(234, 88, 12, 0.3);
+    --color-accent: #C2410C;
+    --color-accent-hover: #9A3412;
+    --color-accent-glow: rgba(234, 88, 12, 0.14);
 
-    --color-background: #0F172A;
-    --color-background-deep: #0B1120;
-    --color-surface: #111827;
-    --color-surface-raised: #1E293B;
-    --color-muted: #1E293B;
-    --color-border: rgba(255, 255, 255, 0.08);
-    --color-border-strong: rgba(255, 255, 255, 0.14);
+    --color-background: #F8FAFC;
+    --color-background-deep: #EEF2F7;
+    --color-surface: #FFFFFF;
+    --color-surface-raised: #F1F5F9;
+    --color-muted: #E2E8F0;
+    --color-border: rgba(15, 23, 42, 0.09);
+    --color-border-strong: rgba(15, 23, 42, 0.16);
+    --color-control-bg: rgba(255, 255, 255, 0.78);
+    --color-control-hover: rgba(15, 23, 42, 0.045);
+    --color-row-border: rgba(15, 23, 42, 0.07);
+    --color-row-hover: rgba(15, 23, 42, 0.025);
+    --color-highlight-line: rgba(15, 23, 42, 0.1);
+    --color-input-bg: #FFFFFF;
+    --color-header-bg: rgba(248, 250, 252, 0.9);
+    --color-header-mobile-bg: rgba(248, 250, 252, 0.96);
+    --color-left-panel-bg: rgba(241, 245, 249, 0.82);
+    --color-menu-bg: rgba(248, 250, 252, 0.98);
+    --color-strip-bg: rgba(238, 242, 247, 0.76);
+    --color-workflow-bg: linear-gradient(180deg, rgba(248, 250, 252, 0.55), rgba(241, 245, 249, 0.8));
+    --color-page-glow-primary: rgba(37, 99, 235, 0.1);
+    --color-page-glow-accent: rgba(234, 88, 12, 0.045);
+    --color-page-grid: rgba(37, 99, 235, 0.035);
 
     /* Text */
-    --color-foreground: #F8FAFC;
-    --color-foreground-secondary: #CBD5E1;
-    --color-foreground-muted: #94A3B8;
+    --color-foreground: #0F172A;
+    --color-foreground-secondary: #334155;
+    --color-foreground-muted: #475569;
     --color-foreground-dim: #64748B;
 
     /* Decision states */
-    --color-pass: #22C55E;
-    --color-pass-bg: rgba(34, 197, 94, 0.1);
-    --color-fail: #F87171;
-    --color-fail-bg: rgba(248, 113, 113, 0.1);
-    --color-error: #FBBF24;
-    --color-error-bg: rgba(251, 191, 36, 0.1);
+    --color-pass: #15803D;
+    --color-pass-bg: rgba(21, 128, 61, 0.1);
+    --color-fail: #B91C1C;
+    --color-fail-bg: rgba(185, 28, 28, 0.1);
+    --color-error: #B45309;
+    --color-error-bg: rgba(180, 83, 9, 0.1);
+    --color-scanner-eslint: #6D28D9;
+    --color-strength-good: #1D4ED8;
 
     /* Glass */
-    --glass-bg: rgba(17, 24, 39, 0.55);
-    --glass-border: rgba(255, 255, 255, 0.08);
+    --glass-bg: rgba(255, 255, 255, 0.82);
+    --glass-border: rgba(15, 23, 42, 0.1);
     --glass-blur: 16px;
 
     /* Typography */
@@ -66,9 +83,9 @@
     --radius-full: 9999px;
 
     /* Shadows */
-    --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.3);
-    --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.25);
-    --shadow-lg: 0 12px 40px rgba(0, 0, 0, 0.3);
+    --shadow-sm: 0 1px 3px rgba(15, 23, 42, 0.08);
+    --shadow-md: 0 4px 12px rgba(15, 23, 42, 0.08);
+    --shadow-lg: 0 12px 40px rgba(15, 23, 42, 0.1);
     --shadow-glow: 0 0 40px var(--color-primary-glow);
 
     /* Transitions */
@@ -79,7 +96,7 @@
     /* Layout */
     --max-width: 1200px;
 
-    color-scheme: dark;
+    color-scheme: light;
     font-family: var(--font-sans);
     color: var(--color-foreground);
     background: var(--color-background);
@@ -87,6 +104,56 @@
     text-rendering: optimizeLegibility;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+}
+
+:root[data-theme="dark"] {
+    color-scheme: dark;
+    --color-primary: #2563EB;
+    --color-primary-hover: #1D4ED8;
+    --color-primary-light: #3B82F6;
+    --color-primary-glow: rgba(37, 99, 235, 0.35);
+    --color-accent: #EA580C;
+    --color-accent-hover: #C2410C;
+    --color-accent-glow: rgba(234, 88, 12, 0.3);
+    --color-background: #0F172A;
+    --color-background-deep: #0B1120;
+    --color-surface: #111827;
+    --color-surface-raised: #1E293B;
+    --color-muted: #1E293B;
+    --color-border: rgba(255, 255, 255, 0.08);
+    --color-border-strong: rgba(255, 255, 255, 0.14);
+    --color-control-bg: rgba(255, 255, 255, 0.04);
+    --color-control-hover: rgba(255, 255, 255, 0.1);
+    --color-row-border: rgba(255, 255, 255, 0.05);
+    --color-row-hover: rgba(255, 255, 255, 0.02);
+    --color-highlight-line: rgba(255, 255, 255, 0.15);
+    --color-input-bg: rgba(15, 23, 42, 0.8);
+    --color-header-bg: rgba(15, 23, 42, 0.72);
+    --color-header-mobile-bg: rgba(15, 23, 42, 0.85);
+    --color-left-panel-bg: rgba(11, 17, 32, 0.4);
+    --color-menu-bg: rgba(11, 17, 32, 0.98);
+    --color-strip-bg: rgba(11, 17, 32, 0.6);
+    --color-workflow-bg: linear-gradient(180deg, rgba(11, 17, 32, 0.4), rgba(15, 23, 42, 0.6));
+    --color-page-glow-primary: rgba(37, 99, 235, 0.18);
+    --color-page-glow-accent: rgba(234, 88, 12, 0.08);
+    --color-page-grid: rgba(37, 99, 235, 0.025);
+    --color-foreground: #F8FAFC;
+    --color-foreground-secondary: #CBD5E1;
+    --color-foreground-muted: #94A3B8;
+    --color-foreground-dim: #64748B;
+    --color-pass: #22C55E;
+    --color-pass-bg: rgba(34, 197, 94, 0.1);
+    --color-fail: #F87171;
+    --color-fail-bg: rgba(248, 113, 113, 0.1);
+    --color-error: #FBBF24;
+    --color-error-bg: rgba(251, 191, 36, 0.1);
+    --color-scanner-eslint: #A78BFA;
+    --color-strength-good: #60A5FA;
+    --glass-bg: rgba(17, 24, 39, 0.55);
+    --glass-border: rgba(255, 255, 255, 0.08);
+    --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.3);
+    --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.25);
+    --shadow-lg: 0 12px 40px rgba(0, 0, 0, 0.3);
 }
 
 /* --- Reset --- */
@@ -156,7 +223,7 @@ a:focus-visible, button:focus-visible {
     position: sticky;
     top: 0;
     z-index: 50;
-    background: rgba(15, 23, 42, 0.72);
+    background: var(--color-header-bg);
     backdrop-filter: blur(20px);
     -webkit-backdrop-filter: blur(20px);
     border-bottom: 1px solid var(--color-border);
@@ -287,13 +354,13 @@ a:focus-visible, button:focus-visible {
 .btn-accent:active { transform: translateY(0); }
 
 .btn-ghost {
-    background: rgba(255, 255, 255, 0.06);
+    background: var(--color-control-bg);
     color: var(--color-foreground);
     border: 1px solid var(--color-border-strong);
 }
 .btn-ghost:hover {
-    background: rgba(255, 255, 255, 0.1);
-    border-color: rgba(255, 255, 255, 0.2);
+    background: var(--color-control-hover);
+    border-color: var(--color-border-strong);
     transform: translateY(-1px);
 }
 
@@ -340,8 +407,8 @@ a:focus-visible, button:focus-visible {
     position: absolute;
     inset: 0;
     background-image:
-        linear-gradient(rgba(37, 99, 235, 0.03) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(37, 99, 235, 0.03) 1px, transparent 1px);
+        linear-gradient(var(--color-page-grid) 1px, transparent 1px),
+        linear-gradient(90deg, var(--color-page-grid) 1px, transparent 1px);
     background-size: 60px 60px;
     mask-image: radial-gradient(ellipse at center, black 0%, transparent 70%);
     -webkit-mask-image: radial-gradient(ellipse at center, black 0%, transparent 70%);
@@ -431,7 +498,7 @@ a:focus-visible, button:focus-visible {
     left: 0;
     right: 0;
     height: 1px;
-    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.15), transparent);
+    background: linear-gradient(90deg, transparent, var(--color-highlight-line), transparent);
     border-radius: var(--radius-lg) var(--radius-lg) 0 0;
 }
 
@@ -478,11 +545,11 @@ a:focus-visible, button:focus-visible {
     align-items: center;
     gap: 12px;
     padding: 16px 0;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    border-bottom: 1px solid var(--color-row-border);
     transition: background var(--transition-fast);
 }
 .decision-row:last-child { border-bottom: none; }
-.decision-row:hover { background: rgba(255, 255, 255, 0.02); }
+.decision-row:hover { background: var(--color-row-hover); }
 
 .decision-icon {
     display: grid;
@@ -540,7 +607,7 @@ a:focus-visible, button:focus-visible {
    ============================================================ */
 .scanner-strip {
     border-block: 1px solid var(--color-border);
-    background: rgba(11, 17, 32, 0.6);
+    background: var(--color-strip-bg);
     backdrop-filter: blur(8px);
     -webkit-backdrop-filter: blur(8px);
 }
@@ -594,7 +661,7 @@ a:focus-visible, button:focus-visible {
 
 .python-badge { color: var(--color-error); border-color: rgba(251, 191, 36, 0.2); }
 .semgrep-badge { color: var(--color-pass); border-color: rgba(34, 197, 94, 0.2); }
-.eslint-badge { color: #A78BFA; border-color: rgba(167, 139, 250, 0.2); }
+.eslint-badge { color: var(--color-scanner-eslint); border-color: rgba(167, 139, 250, 0.2); }
 
 .scanner-role {
     color: var(--color-foreground-muted);
@@ -743,7 +810,7 @@ a:focus-visible, button:focus-visible {
    ============================================================ */
 .workflow {
     border-block: 1px solid var(--color-border);
-    background: linear-gradient(180deg, rgba(11, 17, 32, 0.4), rgba(15, 23, 42, 0.6));
+    background: var(--color-workflow-bg);
 }
 
 .workflow-header {
@@ -1022,7 +1089,7 @@ a:focus-visible, button:focus-visible {
     .header-inner { width: calc(100% - 32px); }
     .footer-inner { width: calc(100% - 32px); }
 
-    .site-header { background: rgba(15, 23, 42, 0.85); }
+    .site-header { background: var(--color-header-mobile-bg); }
 
     .header-inner {
         height: 60px;
@@ -1041,7 +1108,7 @@ a:focus-visible, button:focus-visible {
         place-items: center;
         border: 1px solid var(--color-border-strong);
         border-radius: var(--radius-sm);
-        background: rgba(255, 255, 255, 0.04);
+        background: var(--color-control-bg);
         color: var(--color-foreground-secondary);
         cursor: pointer;
     }
@@ -1062,7 +1129,7 @@ a:focus-visible, button:focus-visible {
         overflow-y: auto;
         padding: 10px 16px 16px;
         border-bottom: 1px solid var(--color-border-strong);
-        background: rgba(11, 17, 32, 0.98);
+        background: var(--color-menu-bg);
         box-shadow: 0 20px 32px rgba(0, 0, 0, 0.25);
     }
     .site-header.menu-open .primary-nav a,
@@ -1180,7 +1247,7 @@ a:focus-visible, button:focus-visible {
     .footer-nav a { padding-inline: 8px; }
 }
 
-@media (max-width: 360px) {
+@media (max-width: 400px) {
     .header-inner { gap: 8px; }
     .header-inner > .brand .brand-text { display: none; }
     .header-actions { margin-left: auto; }

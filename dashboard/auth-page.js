@@ -79,7 +79,7 @@ if (mode === "register") {
             if (strengthBar) strengthBar.setAttribute("aria-valuenow", String(pct[level] || 0));
 
             // Colour the label text
-            const colours = ["", "#F87171", "#FBBF24", "#60A5FA", "#22C55E"];
+            const colours = ["", "var(--color-fail)", "var(--color-error)", "var(--color-strength-good)", "var(--color-pass)"];
             strengthLabel.style.color = colours[level] || "";
         });
     }
