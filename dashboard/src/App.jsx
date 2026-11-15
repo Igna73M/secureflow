@@ -1,8 +1,8 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
     Activity, ArrowLeft, ArrowRight, ArrowUpRight, Check, CircleAlert,
     Clock3, FileCode2, Filter, History, LayoutDashboard, LoaderCircle,
-    LogOut, RefreshCw, Search, ShieldCheck, Upload,
+    LogOut, Menu, PanelLeftClose, PanelLeftOpen, RefreshCw, Search, ShieldCheck, Upload, X,
 } from "lucide-react";
 
 const ROUTES = {
@@ -45,11 +45,13 @@ function DecisionBadge({ scan }) {
     return <span className={`decision-badge decision-${decision.toLowerCase()}`}><span />{scan.verified ? decision : "Unverified"}</span>;
 }
 
-function ScanTable({ scans, onInspect, emptyText, selectedId = "", overview = false }) {
-    if (!scans.length) return <div className="empty-state"><Activity size={20} /><p>{emptyText}</p></div>;
-    return <div className="table-scroll"><table>
+function ScanTable({ scans, onInspect, emptyText, selectedId = "", overview = false, loading = false }) {
+    if (!scans.length && !loading) return <div className="empty-state"><Activity size={20} /><p>{emptyText}</p></div>;
+    return <div className="table-scroll" role="region" aria-label="Scan records" tabIndex={0}><table>
         <thead><tr><th>Target</th><th>Decision</th><th>Verification</th><th>Date</th>{!overview && <th aria-label="Inspect" />}</tr></thead>
-        <tbody>{scans.map((scan) => <tr key={scan.id} className={String(scan.id) === String(selectedId) ? "selected-scan" : ""}>
+        <tbody>{!scans.length && loading ? Array.from({ length: overview ? 3 : 6 }, (_, index) => <tr key={`loading-${index}`} className="skeleton-row" aria-hidden="true">
+            <td><span className="skeleton skeleton-target" /></td><td><span className="skeleton skeleton-badge" /></td><td><span className="skeleton skeleton-label" /></td><td><span className="skeleton skeleton-date" /></td>{!overview && <td><span className="skeleton skeleton-action" /> </td>}
+        </tr>) : scans.map((scan) => <tr key={scan.id} className={String(scan.id) === String(selectedId) ? "selected-scan" : ""}>
             <td><button className="target-link" type="button" onClick={() => onInspect(scan.id)}>{scan.target}<ArrowUpRight size={13} /></button></td>
             <td><DecisionBadge scan={scan} /></td>
             <td><span className={`verification-label ${scan.verified ? "is-verified" : "is-unverified"}`}><span />{scan.verified ? "Scanner output" : "Submitted report"}</span></td>
@@ -69,7 +71,10 @@ function Finding({ finding }) {
     </article>;
 }
 
-function Metric({ label, value, footnote, tone, icon: Icon }) {
+function Metric({ label, value, footnote, tone, icon: Icon, loading = false }) {
+    if (loading) return <article className={`metric metric-${tone} metric-skeleton`} aria-hidden="true">
+        <span className="skeleton skeleton-metric-label" /><span className="skeleton skeleton-metric-value" /><span className="skeleton skeleton-metric-footnote" />
+    </article>;
     return <article className={`metric metric-${tone}`}>
         <div className="metric-top"><span>{label}</span><Icon size={16} strokeWidth={1.7} /></div>
         <strong>{value ?? "—"}</strong>
@@ -77,22 +82,26 @@ function Metric({ label, value, footnote, tone, icon: Icon }) {
     </article>;
 }
 
-function Sidebar({ view, user, onLogout, loggingOut }) {
-    return <aside className="sidebar">
-        <a href="/" className="brand" aria-label="SecureFlow home"><span className="brand-mark"><ShieldCheck size={19} /></span><span>secureflow</span></a>
+function Sidebar({ view, user, onLogout, loggingOut, open, collapsed, onToggleCollapse, sidebarRef, onNavigate, onClose }) {
+    return <aside id="workspace-sidebar" ref={sidebarRef} className={`sidebar ${open ? "is-open" : ""} ${collapsed ? "is-collapsed" : ""}`} aria-label="Workspace navigation" role={open ? "dialog" : undefined} aria-modal={open ? "true" : undefined}>
+        <div className="sidebar-heading"><a href="/" className="brand" aria-label="SecureFlow home" onClick={onNavigate}><span className="brand-mark"><ShieldCheck size={19} /></span><span>secureflow</span></a><button className="icon-button sidebar-toggle" type="button" onClick={onToggleCollapse} aria-label={collapsed ? "Expand navigation" : "Collapse navigation"} aria-expanded={!collapsed} aria-controls="workspace-sidebar" title={collapsed ? "Expand navigation" : "Collapse navigation"}>{collapsed ? <PanelLeftOpen size={18} /> : <PanelLeftClose size={18} />}</button><button className="icon-button sidebar-close" type="button" onClick={onClose} aria-label="Close navigation"><X size={18} /></button></div>
         <div className="workspace-label">WORKSPACE</div>
         <nav className="workspace-nav" aria-label="Console pages">{NAVIGATION.map(({ href, label, icon: Icon }) => {
             const active = view === ROUTES[href].id;
-            return <a key={href} href={href} className={active ? "nav-item is-active" : "nav-item"} aria-current={active ? "page" : undefined}><Icon size={17} strokeWidth={1.7} /><span>{label}</span>{active && <span className="nav-current" />}</a>;
+            return <a key={href} href={href} className={active ? "nav-item is-active" : "nav-item"} aria-label={label} title={collapsed ? label : undefined} aria-current={active ? "page" : undefined} onClick={onNavigate}><Icon size={17} strokeWidth={1.7} /><span>{label}</span>{active && <span className="nav-current" />}</a>;
         })}</nav>
-        <div className="sidebar-bottom"><span className="account-indicator" /><span className="account-email" title={user?.email || ""}>{user?.email || "Loading account"}</span><button className="icon-button logout-button" type="button" title="Sign out" aria-label="Sign out" onClick={onLogout} disabled={loggingOut}><LogOut size={16} /></button></div>
+        <div className="sidebar-bottom"><span className="account-indicator" /><span className="account-email" title={user?.email || ""}>{user?.email || "Loading account"}</span><button className="icon-button logout-button" type="button" title={loggingOut ? "Signing out…" : "Sign out"} aria-label={loggingOut ? "Signing out" : "Sign out"} onClick={onLogout} disabled={loggingOut}>{loggingOut ? <LoaderCircle className="spin" size={16} /> : <LogOut size={16} />}</button></div>
     </aside>;
 }
 
 function ScanDetails({ scan, loading, error, severity, setSeverity, scanner, setScanner }) {
     const [showAll, setShowAll] = useState(false);
     useEffect(() => setShowAll(false), [scan?.id]);
-    if (loading) return <section className="details-panel"><div className="details-loading"><LoaderCircle className="spin" size={20} />Loading scan details</div></section>;
+    if (loading) return <section className="details-panel details-loading-panel" aria-busy="true" aria-label="Loading scan details">
+        <div className="details-heading"><div><span className="eyebrow">INSPECTION</span><h2>Loading scan details…</h2></div></div>
+        <div className="details-loading"><LoaderCircle className="spin" size={17} /><span>Fetching findings and verification details</span></div>
+        <div className="findings-list" aria-hidden="true">{[0, 1, 2].map((item) => <div className="finding-skeleton" key={item}><span className="skeleton skeleton-finding-meta" /><span className="skeleton skeleton-finding-title" /><span className="skeleton skeleton-finding-copy" /></div>)}</div>
+    </section>;
     if (error) return <section className="details-panel"><div className="empty-state"><CircleAlert size={20} /><p>{error}</p></div></section>;
     if (!scan) return <section className="details-panel"><div className="details-heading"><div><span className="eyebrow">INSPECTION</span><h2>Scan details</h2></div><span className="detail-placeholder">Select a record</span></div><div className="empty-state"><FileCode2 size={20} /><p>Choose a scan from the table to inspect its findings.</p></div></section>;
     const scanners = [...new Set(scan.findings.map((finding) => finding.scanner))].sort();
@@ -138,6 +147,62 @@ function App() {
     const [uploading, setUploading] = useState(false);
     const [uploadResult, setUploadResult] = useState(null);
     const [uploadError, setUploadError] = useState("");
+    const [slowLoading, setSlowLoading] = useState(false);
+    const isDataLoading = !authReady || loading;
+    const isBusy = isDataLoading || detailLoading || uploading;
+    const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+    const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+    const menuButtonRef = useRef(null);
+    const sidebarRef = useRef(null);
+
+    useEffect(() => {
+        if (!mobileMenuOpen) return undefined;
+        const previousOverflow = document.body.style.overflow;
+        document.body.style.overflow = "hidden";
+        const getFocusable = () => [...(sidebarRef.current?.querySelectorAll('a[href], button:not(:disabled)') || [])];
+        getFocusable()[0]?.focus();
+        function handleKeyDown(event) {
+            if (event.key === "Escape") {
+                setMobileMenuOpen(false);
+                menuButtonRef.current?.focus();
+                return;
+            }
+            if (event.key !== "Tab") return;
+            const focusable = getFocusable();
+            if (!focusable.length) return;
+            const first = focusable[0];
+            const last = focusable[focusable.length - 1];
+            if (event.shiftKey && document.activeElement === first) {
+                event.preventDefault();
+                last.focus();
+            } else if (!event.shiftKey && document.activeElement === last) {
+                event.preventDefault();
+                first.focus();
+            }
+        }
+        window.addEventListener("keydown", handleKeyDown);
+        return () => {
+            document.body.style.overflow = previousOverflow;
+            window.removeEventListener("keydown", handleKeyDown);
+        };
+    }, [mobileMenuOpen]);
+
+    useEffect(() => {
+        const desktop = window.matchMedia("(min-width: 1024px)");
+        const closeOnDesktop = (event) => { if (event.matches) setMobileMenuOpen(false); };
+        desktop.addEventListener("change", closeOnDesktop);
+        return () => desktop.removeEventListener("change", closeOnDesktop);
+    }, []);
+
+    useEffect(() => {
+        if (!isBusy) {
+            setSlowLoading(false);
+            return undefined;
+        }
+        setSlowLoading(false);
+        const timer = window.setTimeout(() => setSlowLoading(true), 3500);
+        return () => window.clearTimeout(timer);
+    }, [isBusy]);
 
     useEffect(() => {
         let active = true;
@@ -261,31 +326,32 @@ function App() {
     const hasActiveFilters = Boolean(filters.q || filters.decision || filters.scanner || filters.verified !== "all");
     const scanTarget = uploadResult?.target || `upload:${file?.name || "source file"}`;
 
-    return <div className="app-shell">
-        <Sidebar view={view} user={user} onLogout={logout} loggingOut={loggingOut} />
+    return <div className={`app-shell ${sidebarCollapsed ? "is-sidebar-collapsed" : ""}`}>
+        {mobileMenuOpen && <button className="sidebar-scrim" type="button" onClick={() => { setMobileMenuOpen(false); menuButtonRef.current?.focus(); }} aria-label="Close navigation menu" />}
+        <Sidebar view={view} user={user} onLogout={logout} loggingOut={loggingOut} open={mobileMenuOpen} collapsed={sidebarCollapsed} onToggleCollapse={() => setSidebarCollapsed((collapsed) => !collapsed)} sidebarRef={sidebarRef} onNavigate={() => setMobileMenuOpen(false)} onClose={() => { setMobileMenuOpen(false); menuButtonRef.current?.focus(); }} />
         <main className="main-content">
-            <header className="topbar"><div className="mobile-brand"><span className="brand-mark"><ShieldCheck size={18} /></span><span>secureflow</span></div><div className="breadcrumbs"><span>Workspace</span><span>/</span><strong>{route.title}</strong></div><div className="topbar-actions"><span className="live-indicator"><span /> Private workspace</span>{view !== "new-scan" && <button className="refresh-button" type="button" onClick={refresh} disabled={loading}><RefreshCw size={15} className={loading ? "spin" : ""} />Refresh</button>}</div></header>
+            <header className="topbar"><button className="mobile-menu-toggle" type="button" ref={menuButtonRef} onClick={() => setMobileMenuOpen((open) => !open)} aria-label={mobileMenuOpen ? "Close navigation menu" : "Open navigation menu"} aria-expanded={mobileMenuOpen} aria-controls="workspace-sidebar">{mobileMenuOpen ? <X size={19} /> : <Menu size={19} />}</button><div className="mobile-brand"><span className="brand-mark"><ShieldCheck size={18} /></span><span>secureflow</span></div><div className="breadcrumbs"><span>Workspace</span><span>/</span><strong>{route.title}</strong></div><div className="topbar-actions"><span className="live-indicator"><span /> Private workspace</span>{view !== "new-scan" && <button className="refresh-button" type="button" onClick={refresh} disabled={loading}><RefreshCw size={15} className={loading ? "spin" : ""} />Refresh</button>}</div></header>
             <div className="page-wrap">
                 <div className="page-heading"><div><p className="eyebrow">SECURITY OPERATIONS</p><h1>{route.title}</h1><p className="page-description">{route.description}</p></div>{view === "overview" && <a className="primary-link" href="/console/new-scan"><Upload size={15} />New scan</a>}</div>
-                <div className={`status-line ${pageError ? "status-error" : ""}`} role="status" aria-live="polite"><span className="status-dot" />{pageError || status}{pageError && <button type="button" onClick={refresh}>Retry</button>}</div>
+                <div className={`status-line ${pageError ? "status-error" : ""}`} role="status" aria-live="polite" aria-busy={isBusy}><span className="status-indicator">{isBusy && !pageError ? <LoaderCircle className="spin" size={15} aria-hidden="true" /> : <span className="status-dot" />}</span><span>{pageError || status}</span>{slowLoading && !pageError && <span className="slow-hint">Still waiting for a response. This can take a little longer on a slow connection.</span>}{pageError && <button type="button" onClick={refresh}>Retry</button>}</div>
 
                 {view === "overview" && <>
-                    <section className="metrics-grid" aria-label="Verified scan metrics">
-                        <Metric label="Total records" value={metrics?.total} footnote={`${metrics?.unverified ?? "—"} unverified excluded from decisions`} tone="total" icon={Activity} />
-                        <Metric label="Verified pass" value={metrics?.pass} footnote="Scanner-confirmed outcomes" tone="pass" icon={Check} />
-                        <Metric label="Verified fail" value={metrics?.fail} footnote="Blocking decision" tone="fail" icon={CircleAlert} />
-                        <Metric label="Verified error" value={metrics?.error} footnote="Incomplete checks" tone="error" icon={Clock3} />
+                    <section className="metrics-grid" aria-label="Verified scan metrics" aria-busy={isDataLoading}>
+                        <Metric loading={isDataLoading && !metrics} label="Total records" value={metrics?.total} footnote={`${metrics?.unverified ?? "—"} unverified excluded from decisions`} tone="total" icon={Activity} />
+                        <Metric loading={isDataLoading && !metrics} label="Verified pass" value={metrics?.pass} footnote="Scanner-confirmed outcomes" tone="pass" icon={Check} />
+                        <Metric loading={isDataLoading && !metrics} label="Verified fail" value={metrics?.fail} footnote="Blocking decision" tone="fail" icon={CircleAlert} />
+                        <Metric loading={isDataLoading && !metrics} label="Verified error" value={metrics?.error} footnote="Incomplete checks" tone="error" icon={Clock3} />
                     </section>
-                    <section className="section-panel overview-panel"><div className="section-header"><div><span className="eyebrow">LATEST ACTIVITY</span><h2>Recent scans</h2></div><a className="inline-link" href="/console/history">View history<ArrowRight size={14} /></a></div>
-                        {loading && !scans.length ? <div className="empty-state"><LoaderCircle className="spin" size={19} /><p>Loading recent scans…</p></div> : <ScanTable scans={scans.slice(0, 5)} overview onInspect={inspectScan} emptyText="No scan activity yet. Start a scan to see results here." />}
+                    <section className="section-panel overview-panel" aria-busy={isDataLoading}><div className="section-header"><div><span className="eyebrow">LATEST ACTIVITY</span><h2>Recent scans</h2></div><a className="inline-link" href="/console/history">View history<ArrowRight size={14} /></a></div>
+                        <ScanTable scans={scans.slice(0, 5)} overview loading={isDataLoading} onInspect={inspectScan} emptyText="No scan activity yet. Start a scan to see results here." />
                     </section>
                     <section className="trust-strip"><ShieldCheck size={18} /><p><strong>Verified means scanner-run, not vulnerability-free.</strong><span>Submitted reports are kept separate from verified policy decisions.</span></p><a href="/console/history">Review records <ArrowRight size={14} /></a></section>
                 </>}
 
                 {view === "history" && <>
-                    <section className="section-panel history-panel"><div className="section-header"><div><span className="eyebrow">RECORDS</span><h2>All scans <span className="heading-count">{total}</span></h2></div><span className="page-count"><History size={14} />Page {page} of {Math.max(pages, 1)}</span></div>
+                    <section className="section-panel history-panel" aria-busy={isDataLoading}><div className="section-header"><div><span className="eyebrow">RECORDS</span><h2>All scans <span className="heading-count">{total}</span></h2></div><span className="page-count"><History size={14} />Page {page} of {Math.max(pages, 1)}</span></div>
                         <form className="filters" onSubmit={submitFilters}><label className="search-control"><Search size={16} /><input type="search" maxLength={100} placeholder="Search targets" value={searchDraft} onChange={(event) => setSearchDraft(event.target.value)} /></label><label><span className="sr-only">Decision</span><select value={draftFilters.decision} onChange={(event) => setDraftFilters((value) => ({ ...value, decision: event.target.value }))}><option value="">All decisions</option><option value="PASS">Pass</option><option value="FAIL">Fail</option><option value="ERROR">Error</option></select></label><label><span className="sr-only">Verification</span><select value={draftFilters.verified} onChange={(event) => setDraftFilters((value) => ({ ...value, verified: event.target.value }))}><option value="all">All records</option><option value="true">Verified only</option><option value="false">Unverified only</option></select></label><label><span className="sr-only">Scanner</span><select value={draftFilters.scanner} onChange={(event) => setDraftFilters((value) => ({ ...value, scanner: event.target.value }))}><option value="">All scanners</option><option value="bandit">Bandit</option><option value="semgrep">Semgrep</option><option value="eslint">ESLint</option></select></label><button className="filter-button" type="submit"><Filter size={14} />Apply</button><button className="clear-filters" type="button" onClick={clearFilters} disabled={!hasActiveFilters}>Clear</button></form>
-                        {loading && !scans.length ? <div className="empty-state"><LoaderCircle className="spin" size={19} /><p>Loading scans…</p></div> : <ScanTable scans={scans} onInspect={inspectScan} selectedId={selectedId} emptyText={pageError ? "Scan history could not be loaded." : "No records match these filters."} />}
+                        <ScanTable scans={scans} onInspect={inspectScan} selectedId={selectedId} loading={isDataLoading} emptyText={pageError ? "Scan history could not be loaded." : "No records match these filters."} />
                         <div className="pagination"><span>Showing {scans.length ? (page - 1) * PAGE_SIZE + 1 : 0}–{Math.min(page * PAGE_SIZE, total)} of {total}</span><div><button type="button" aria-label="Previous page" disabled={page <= 1 || loading} onClick={() => setPage((value) => value - 1)}><ArrowLeft size={15} /></button><button type="button" aria-label="Next page" disabled={page >= pages || loading} onClick={() => setPage((value) => value + 1)}><ArrowRight size={15} /></button></div></div>
                     </section>
                     <ScanDetails scan={selectedScan} loading={detailLoading} error={detailError} severity={severity} setSeverity={setSeverity} scanner={scanner} setScanner={setScanner} />
@@ -293,7 +359,7 @@ function App() {
 
                 {view === "new-scan" && <section className="upload-layout">
                     <div className="upload-copy"><span className="upload-icon"><FileCode2 size={22} /></span><span className="eyebrow">ON-DEMAND ANALYSIS</span><h2>Run a focused source check.</h2><p>Upload one source file. SecureFlow scans its contents without executing the file, then records the scanner result in your private history.</p><ul className="upload-facts"><li><Check size={15} />Python and JavaScript source</li><li><Check size={15} />Up to 100 KiB per file</li><li><Check size={15} />Temporary file removed after analysis</li></ul></div>
-                    <form className="upload-form" onSubmit={submitUpload}><div className="upload-form-heading"><div><span className="eyebrow">SOURCE FILE</span><h2>Choose what to scan</h2></div><span className="file-types">.py · .js · .cjs · .mjs</span></div><label className={`drop-zone ${file ? "has-file" : ""} ${dragging ? "is-dragging" : ""}`} htmlFor="source-file" onDragEnter={(event) => { event.preventDefault(); setDragging(true); }} onDragOver={(event) => event.preventDefault()} onDragLeave={(event) => { if (!event.currentTarget.contains(event.relatedTarget)) setDragging(false); }} onDrop={(event) => { event.preventDefault(); setDragging(false); const dropped = event.dataTransfer.files?.[0]; if (dropped) { setFile(dropped); setUploadResult(null); setUploadError(""); } }}><input id="source-file" type="file" accept=".py,.js,.cjs,.mjs,text/x-python,text/javascript" onChange={(event) => { setFile(event.target.files?.[0] || null); setUploadResult(null); setUploadError(""); }} /><span className="drop-icon"><Upload size={20} /></span><strong>{file ? file.name : "Choose a source file"}</strong><span>{file ? `${(file.size / 1024).toFixed(file.size < 1024 ? 2 : 1)} KiB · Click to replace` : "or drag it into this area"}</span></label><button className="primary-link upload-submit" type="submit" disabled={uploading || !file}>{uploading ? <LoaderCircle className="spin" size={16} /> : <ShieldCheck size={16} />}{uploading ? "Scanning…" : "Run security scan"}</button>{uploadError && <p className="form-error" role="alert"><CircleAlert size={15} />{uploadError}</p>}{uploadResult && <div className={`upload-result result-${uploadResult.decision.toLowerCase()}`}><div className="result-title"><span className="result-icon">{uploadResult.decision === "PASS" ? <Check size={17} /> : <CircleAlert size={17} />}</span><div><span className="eyebrow">{uploadResult.verified ? "SCANNER OUTPUT" : "UNVERIFIED RESULT"}</span><h3>{uploadResult.decision} · {scanTarget}</h3></div></div><p>{uploadResult.verified ? (uploadResult.promotion_allowed ? "Configured checks completed and allowed promotion." : "Configured checks completed but blocked promotion.") : "This result was not verified by the scanner engine."}</p>{uploadResult.errors?.map((error) => <p key={error} className="form-error">{error}</p>)}{uploadResult.findings?.length > 0 && <div className="result-findings">{uploadResult.findings.slice(0, 5).map((finding, index) => <Finding key={`${finding.rule_id}-${index}`} finding={finding} />)}{uploadResult.findings.length > 5 && <span className="muted">Showing 5 of {uploadResult.findings.length} findings. See history for full details.</span>}</div>}<a className="inline-link" href={`/console/history?scan=${encodeURIComponent(uploadResult.id)}`}>Open scan history<ArrowRight size={14} /></a></div>}</form>
+                    <form className="upload-form" onSubmit={submitUpload} aria-busy={uploading}><div className="upload-form-heading"><div><span className="eyebrow">SOURCE FILE</span><h2>Choose what to scan</h2></div><span className="file-types">.py · .js · .cjs · .mjs</span></div><label className={`drop-zone ${file ? "has-file" : ""} ${dragging ? "is-dragging" : ""}`} htmlFor="source-file" onDragEnter={(event) => { event.preventDefault(); setDragging(true); }} onDragOver={(event) => event.preventDefault()} onDragLeave={(event) => { if (!event.currentTarget.contains(event.relatedTarget)) setDragging(false); }} onDrop={(event) => { event.preventDefault(); setDragging(false); const dropped = event.dataTransfer.files?.[0]; if (dropped) { setFile(dropped); setUploadResult(null); setUploadError(""); } }}><input id="source-file" type="file" accept=".py,.js,.cjs,.mjs,text/x-python,text/javascript" onChange={(event) => { setFile(event.target.files?.[0] || null); setUploadResult(null); setUploadError(""); }} /><span className="drop-icon"><Upload size={20} /></span><strong>{file ? file.name : "Choose a source file"}</strong><span>{file ? `${(file.size / 1024).toFixed(file.size < 1024 ? 2 : 1)} KiB · Click to replace` : "or drag it into this area"}</span></label><button className="primary-link upload-submit" type="submit" disabled={uploading || !file}>{uploading ? <LoaderCircle className="spin" size={16} /> : <ShieldCheck size={16} />}{uploading ? "Scanning…" : "Run security scan"}</button>{uploading && <div className="upload-progress" role="progressbar" aria-label="Security scan in progress" aria-valuetext="Scanning source file"><span>Scanning source and waiting for scanner results…</span><div className="progress-track"><span /></div></div>}{uploadError && <p className="form-error" role="alert"><CircleAlert size={15} />{uploadError}</p>}{uploadResult && <div className={`upload-result result-${uploadResult.decision.toLowerCase()}`}><div className="result-title"><span className="result-icon">{uploadResult.decision === "PASS" ? <Check size={17} /> : <CircleAlert size={17} />}</span><div><span className="eyebrow">{uploadResult.verified ? "SCANNER OUTPUT" : "UNVERIFIED RESULT"}</span><h3>{uploadResult.decision} · {scanTarget}</h3></div></div><p>{uploadResult.verified ? (uploadResult.promotion_allowed ? "Configured checks completed and allowed promotion." : "Configured checks completed but blocked promotion.") : "This result was not verified by the scanner engine."}</p>{uploadResult.errors?.map((error) => <p key={error} className="form-error">{error}</p>)}{uploadResult.findings?.length > 0 && <div className="result-findings">{uploadResult.findings.slice(0, 5).map((finding, index) => <Finding key={`${finding.rule_id}-${index}`} finding={finding} />)}{uploadResult.findings.length > 5 && <span className="muted">Showing 5 of {uploadResult.findings.length} findings. See history for full details.</span>}</div>}<a className="inline-link" href={`/console/history?scan=${encodeURIComponent(uploadResult.id)}`}>Open scan history<ArrowRight size={14} /></a></div>}</form>
                 </section>}
                 <footer className="page-footer">SecureFlow results describe configured scanner checks; they do not prove source code is free of vulnerabilities.</footer>
             </div>

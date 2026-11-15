@@ -1,5 +1,34 @@
 "use strict";
 
+const mobileNavToggle = document.querySelector(".mobile-nav-toggle");
+const mobileNav = document.getElementById("primary-navigation");
+const mobileNavHeader = mobileNavToggle?.closest(".site-header");
+
+if (mobileNavToggle && mobileNav && mobileNavHeader) {
+    const setMobileNavOpen = (open, restoreFocus = false) => {
+        mobileNavHeader.classList.toggle("menu-open", open);
+        mobileNavToggle.setAttribute("aria-expanded", String(open));
+        mobileNavToggle.setAttribute("aria-label", open ? "Close main menu" : "Open main menu");
+        if (open) window.requestAnimationFrame(() => mobileNav.querySelector("a:not([hidden])")?.focus());
+        else if (restoreFocus) mobileNavToggle.focus();
+    };
+
+    mobileNavToggle.addEventListener("click", () => {
+        setMobileNavOpen(mobileNavToggle.getAttribute("aria-expanded") !== "true");
+    });
+    mobileNav.querySelectorAll("a").forEach((link) => link.addEventListener("click", () => setMobileNavOpen(false)));
+    mobileNav.querySelector("[data-auth-logout]")?.addEventListener("click", () => setMobileNavOpen(false));
+    document.addEventListener("keydown", (event) => {
+        if (event.key === "Escape" && mobileNavToggle.getAttribute("aria-expanded") === "true") setMobileNavOpen(false, true);
+    });
+    document.addEventListener("click", (event) => {
+        if (!mobileNavHeader.contains(event.target)) setMobileNavOpen(false);
+    });
+    window.matchMedia("(min-width: 641px)").addEventListener("change", (event) => {
+        if (event.matches) setMobileNavOpen(false);
+    });
+}
+
 async function refreshAuthNavigation() {
     try {
         const response = await fetch("/api/auth/me", { credentials: "same-origin" });

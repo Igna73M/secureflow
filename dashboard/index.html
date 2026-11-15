@@ -5,198 +5,342 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="color-scheme" content="dark">
-    <meta name="theme-color" content="#101916">
+    <meta name="theme-color" content="#0F172A">
     <meta name="description"
-        content="A fail-closed CI/CD security gate for supported Python and JavaScript source code.">
-    <title>SecureFlow | Security decisions for every release</title>
+        content="SecureFlow is a fail-closed CI/CD security gate for supported Python and JavaScript source code. Scan, normalize findings, and enforce a clear promotion decision.">
+    <title>SecureFlow — Security decisions for every release</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="home.css">
 </head>
 
 <body>
     <a class="skip-link" href="#main">Skip to content</a>
-    <header class="site-header">
-        <a class="brand" href="/" aria-label="SecureFlow home">
-            <span class="brand-mark" aria-hidden="true"><span></span></span>
-            <span>secureflow</span>
-        </a>
-        <nav class="primary-nav" aria-label="Main navigation">
-            <a href="#capabilities">Product</a>
-            <a href="#workflow">How it works</a>
-            <a href="https://github.com/Igna73M/secureflow/blob/master/README.md">Documentation</a>
-        </nav>
-        <div class="header-actions">
-            <a class="sign-in" href="/login" data-auth-anon>Sign in</a>
-            <a class="button button-small" href="/register" data-auth-anon>Get started <span
-                    aria-hidden="true">↗</span></a>
-            <a class="sign-in" href="/console/overview" data-auth-user hidden>Scan console</a>
-            <span class="sign-in" data-auth-email hidden></span>
-            <button class="sign-in auth-logout" type="button" data-auth-user data-auth-logout hidden>Sign out</button>
+
+    <!-- ============ HEADER ============ -->
+    <header class="site-header" id="header">
+        <div class="header-inner">
+            <a class="brand" href="/" aria-label="SecureFlow home">
+                <span class="brand-mark" aria-hidden="true">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M12 2L3 6v6c0 5 3.8 9.3 9 10 5.2-.7 9-5 9-10V6l-9-4z" />
+                        <path d="M9 12l2 2 4-4" />
+                    </svg>
+                </span>
+                <span class="brand-text">secureflow</span>
+            </a>
+
+            <nav class="primary-nav" id="primary-navigation" aria-label="Main navigation">
+                <a href="#capabilities">Product</a>
+                <a href="#workflow">How it works</a>
+                <a href="#trust">Why SecureFlow</a>
+                <a href="https://github.com/Igna73M/secureflow/blob/master/README.md">Documentation</a>
+                <a class="mobile-nav-account" href="/login" data-auth-anon>Sign in</a>
+                <a class="mobile-nav-account" href="/console/overview" data-auth-user hidden>Scan console</a>
+                <button class="mobile-nav-account mobile-nav-logout" type="button" data-auth-user data-auth-logout hidden>Sign out</button>
+            </nav>
+
+            <div class="header-actions">
+                <a class="link-ghost desktop-sign-in" href="/login" data-auth-anon>Sign in</a>
+                <a class="btn btn-primary btn-sm" href="/register" data-auth-anon>
+                    Get started
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 17L17 7M17 7H8M17 7v9" /></svg>
+                </a>
+                <a class="link-ghost" href="/console/overview" data-auth-user hidden>Scan console</a>
+                <span class="user-email" data-auth-email data-auth-user hidden></span>
+                <button class="link-ghost" type="button" data-auth-user data-auth-logout hidden>Sign out</button>
+            </div>
+
+            <button class="mobile-nav-toggle" type="button" aria-label="Open main menu" aria-expanded="false" aria-controls="primary-navigation">
+                <svg class="menu-open-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16" /></svg>
+                <svg class="menu-close-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="m18 6-12 12M6 6l12 12" /></svg>
+            </button>
         </div>
     </header>
 
     <main id="main">
-        <section class="hero section-shell" aria-labelledby="hero-title">
-            <div class="hero-copy">
-                <p class="eyebrow"><span class="eyebrow-dot" aria-hidden="true"></span> SECURITY THAT FITS THE PIPELINE
-                </p>
-                <h1 id="hero-title">Ship with a<br><em>clear decision.</em></h1>
-                <p class="hero-description">SecureFlow checks supported Python and JavaScript source code in your CI/CD
-                    workflow, then gives your pipeline a security decision it can enforce.</p>
-                <div class="hero-actions">
-                    <a class="button" href="/register">Get started <span aria-hidden="true">↗</span></a>
-                    <a class="text-link" href="https://github.com/Igna73M/secureflow">Explore the source <span
-                            aria-hidden="true">→</span></a>
-                </div>
-                <p class="hero-note">Open source · MIT licensed · Private scan history</p>
-            </div>
 
-            <div class="decision-panel"
-                aria-label="SecureFlow decision model: PASS permits promotion; FAIL and ERROR block promotion">
-                <div class="decision-panel-top">
-                    <span class="panel-kicker">GATE DECISION</span>
-                    <span class="panel-context"><span aria-hidden="true"></span> POLICY OUTCOME</span>
+        <!-- ============ HERO ============ -->
+        <section class="hero" aria-labelledby="hero-title">
+            <div class="hero-glow" aria-hidden="true"></div>
+            <div class="hero-grid" aria-hidden="true"></div>
+
+            <div class="hero-content">
+                <div class="hero-copy">
+                    <p class="eyebrow">
+                        <span class="eyebrow-dot" aria-hidden="true"></span>
+                        SECURITY THAT FITS THE PIPELINE
+                    </p>
+                    <h1 id="hero-title">Ship with a<br><span class="accent-text">clear decision.</span></h1>
+                    <p class="hero-description">
+                        SecureFlow scans supported Python and JavaScript source code in your CI/CD
+                        pipeline, normalizes the findings, and hands your automation an enforceable
+                        security gate decision.
+                    </p>
+                    <div class="hero-actions">
+                        <a class="btn btn-primary" href="/register">
+                            Get started
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 5l7 7-7 7" /></svg>
+                        </a>
+                        <a class="btn btn-ghost" href="https://github.com/Igna73M/secureflow">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.3 3.44 9.8 8.21 11.39.6.11.82-.26.82-.58 0-.28-.01-1.02-.02-2-3.34.73-4.04-1.61-4.04-1.61-.55-1.39-1.34-1.76-1.34-1.76-1.09-.75.08-.73.08-.73 1.21.09 1.84 1.24 1.84 1.24 1.07 1.84 2.81 1.31 3.5 1 .11-.78.42-1.31.76-1.61-2.67-.3-5.47-1.34-5.47-5.96 0-1.32.47-2.39 1.24-3.23-.12-.31-.54-1.52.12-3.18 0 0 1.01-.32 3.3 1.23.96-.27 1.98-.4 3-.41 1.02.01 2.04.14 3 .41 2.28-1.55 3.29-1.23 3.29-1.23.66 1.66.24 2.87.12 3.18.77.84 1.24 1.91 1.24 3.23 0 4.63-2.81 5.65-5.49 5.95.43.37.81 1.1.81 2.22 0 1.6-.01 2.89-.01 3.29 0 .32.22.7.83.58C20.57 21.79 24 17.3 24 12c0-6.63-5.37-12-12-12z" /></svg>
+                            View source
+                        </a>
+                    </div>
+                    <p class="hero-note">Open source · MIT licensed · Private scan history</p>
                 </div>
-                <div class="decision-list">
-                    <div class="decision-row pass-row"><span class="decision-icon" aria-hidden="true">✓</span><span
-                            class="decision-name">PASS</span><span class="decision-description">Promotion
-                            permitted</span><span class="decision-state">ALLOW</span></div>
-                    <div class="decision-row fail-row"><span class="decision-icon" aria-hidden="true">!</span><span
-                            class="decision-name">FAIL</span><span class="decision-description">Blocking
-                            findings</span><span class="decision-state">BLOCK</span></div>
-                    <div class="decision-row error-row"><span class="decision-icon" aria-hidden="true">×</span><span
-                            class="decision-name">ERROR</span><span class="decision-description">Assessment
-                            incomplete</span><span class="decision-state">BLOCK</span></div>
+
+                <!-- Glassmorphic Decision Panel -->
+                <div class="decision-panel glass" role="figure" aria-label="SecureFlow decision model: PASS permits promotion; FAIL and ERROR block promotion">
+                    <div class="panel-header">
+                        <span class="panel-label">GATE DECISION</span>
+                        <span class="panel-status">
+                            <span class="status-dot" aria-hidden="true"></span>
+                            POLICY OUTCOME
+                        </span>
+                    </div>
+                    <div class="decision-list">
+                        <div class="decision-row pass-row">
+                            <span class="decision-icon" aria-hidden="true">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5" /></svg>
+                            </span>
+                            <span class="decision-name">PASS</span>
+                            <span class="decision-desc">Promotion permitted</span>
+                            <span class="decision-badge pass-badge">ALLOW</span>
+                        </div>
+                        <div class="decision-row fail-row">
+                            <span class="decision-icon" aria-hidden="true">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M12 9v4M12 17h.01" /><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" /></svg>
+                            </span>
+                            <span class="decision-name">FAIL</span>
+                            <span class="decision-desc">Blocking findings</span>
+                            <span class="decision-badge fail-badge">BLOCK</span>
+                        </div>
+                        <div class="decision-row error-row">
+                            <span class="decision-icon" aria-hidden="true">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M12 8v4M12 16h.01" /><circle cx="12" cy="12" r="10" /></svg>
+                            </span>
+                            <span class="decision-name">ERROR</span>
+                            <span class="decision-desc">Assessment incomplete</span>
+                            <span class="decision-badge error-badge">BLOCK</span>
+                        </div>
+                    </div>
+                    <div class="panel-footer">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12l3-3 3 3" /><path d="M9 12l3-3 3 3" /></svg>
+                        Only a complete, policy-compliant scan can pass.
+                    </div>
                 </div>
-                <div class="panel-footnote"><span aria-hidden="true">↳</span> Only a complete, policy-compliant scan can
-                    pass.</div>
-            </div>
-            <div class="hero-index" aria-hidden="true"><span>01</span><span class="index-line"></span><span>03</span>
             </div>
         </section>
 
-        <section class="scope-strip" aria-label="Supported scanners">
-            <div class="section-shell scope-inner">
-                <p>BUILT AROUND YOUR EXISTING TOOLCHAIN</p>
-                <ul>
-                    <li><span class="tool-symbol python-symbol">Py</span> Bandit</li>
-                    <li><span class="tool-symbol semgrep-symbol">S</span> Semgrep</li>
-                    <li><span class="tool-symbol eslint-symbol">E</span> ESLint</li>
-                    <li class="scope-caption">Python <span>·</span> JavaScript <span>·</span> CI/CD</li>
+        <!-- ============ SCANNER STRIP ============ -->
+        <section class="scanner-strip" aria-label="Supported scanners">
+            <div class="strip-inner">
+                <p class="strip-label">BUILT AROUND YOUR EXISTING TOOLCHAIN</p>
+                <ul class="scanner-list">
+                    <li>
+                        <span class="scanner-badge python-badge" aria-hidden="true">Py</span>
+                        <span class="scanner-name">Bandit</span>
+                        <span class="scanner-role">Python security</span>
+                    </li>
+                    <li>
+                        <span class="scanner-badge semgrep-badge" aria-hidden="true">Sg</span>
+                        <span class="scanner-name">Semgrep</span>
+                        <span class="scanner-role">JavaScript rules</span>
+                    </li>
+                    <li>
+                        <span class="scanner-badge eslint-badge" aria-hidden="true">Es</span>
+                        <span class="scanner-name">ESLint</span>
+                        <span class="scanner-role">Lint + security</span>
+                    </li>
+                    <li class="strip-caption">Python <span aria-hidden="true">·</span> JavaScript <span aria-hidden="true">·</span> CI/CD</li>
                 </ul>
             </div>
         </section>
 
-        <section class="section-shell capabilities section-space" id="capabilities"
-            aria-labelledby="capabilities-title">
-            <div class="section-heading">
-                <p class="eyebrow">A SMALL, EXPLICIT SECURITY GATE</p>
-                <h2 id="capabilities-title">From scanner output<br>to a decision your pipeline can use.</h2>
-                <p>SecureFlow brings configured scanner checks into one consistent, fail-closed result.</p>
-            </div>
-            <div class="capability-grid">
-                <article class="capability"><span class="capability-number">01</span>
-                    <h3>Scan supported source</h3>
-                    <p>Bandit checks Python. JavaScript checks run through Semgrep and ESLint. The current CLI selects
-                        <code>.py</code>, <code>.js</code>, <code>.cjs</code>, and <code>.mjs</code> files.
+        <!-- ============ CAPABILITIES ============ -->
+        <section class="section capabilities" id="capabilities" aria-labelledby="capabilities-title">
+            <div class="section-inner">
+                <div class="section-heading">
+                    <p class="eyebrow">
+                        <span class="eyebrow-dot" aria-hidden="true"></span>
+                        A SMALL, EXPLICIT SECURITY GATE
                     </p>
-                </article>
-                <article class="capability"><span class="capability-number">02</span>
-                    <h3>Normalize findings</h3>
-                    <p>Scanner-specific output is mapped to shared finding fields, including severity, source location,
-                        and whether a finding blocks promotion.</p>
-                </article>
-                <article class="capability"><span class="capability-number">03</span>
-                    <h3>Evaluate policy</h3>
-                    <p>Required checks and blocking findings feed a structured JSON report with a distinct decision and
-                        CLI exit status.</p>
-                </article>
-                <article class="capability"><span class="capability-number">04</span>
-                    <h3>Keep a scan record</h3>
-                    <p>The local API can scan one uploaded file or store a submitted report in SQLite. Accounts keep
-                        scan history private; submitted reports remain unverified.</p>
-                </article>
+                    <h2 id="capabilities-title">From scanner output<br>to a decision your pipeline can use.</h2>
+                    <p class="section-sub">SecureFlow brings configured scanner checks into one consistent, fail-closed result — so your automation always knows what to do.</p>
+                </div>
+
+                <div class="feature-grid">
+                    <article class="feature-card glass">
+                        <div class="feature-card-top">
+                            <span class="feature-number">01</span>
+                            <div class="feature-icon" aria-hidden="true">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" /><path d="M14 2v6h6" /><path d="M8 13h2M8 17h6M8 9h2" /></svg>
+                            </div>
+                        </div>
+                        <h3>Scan supported source</h3>
+                        <p>Bandit checks Python. Semgrep and ESLint check JavaScript. The CLI selects <code>.py</code>, <code>.js</code>, <code>.cjs</code>, and <code>.mjs</code> files.</p>
+                    </article>
+
+                    <article class="feature-card glass">
+                        <div class="feature-card-top">
+                            <span class="feature-number">02</span>
+                            <div class="feature-icon" aria-hidden="true">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 11-6.219-8.56" /><path d="M9 12l2 2 4-4" /></svg>
+                            </div>
+                        </div>
+                        <h3>Normalize findings</h3>
+                        <p>Scanner-specific output maps to shared finding fields: severity, source location, rule ID, and a blocking flag — all in structured JSON.</p>
+                    </article>
+
+                    <article class="feature-card glass">
+                        <div class="feature-card-top">
+                            <span class="feature-number">03</span>
+                            <div class="feature-icon" aria-hidden="true">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4" /><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11" /></svg>
+                            </div>
+                        </div>
+                        <h3>Evaluate policy</h3>
+                        <p>Required checks and blocking findings feed a structured report with a distinct decision — PASS, FAIL, or ERROR — and matching CLI exit code.</p>
+                    </article>
+
+                    <article class="feature-card glass">
+                        <div class="feature-card-top">
+                            <span class="feature-number">04</span>
+                            <div class="feature-icon" aria-hidden="true">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="9" ry="3" /><path d="M3 5v14a9 3 0 0018 0V5" /><path d="M3 12a9 3 0 0018 0" /></svg>
+                            </div>
+                        </div>
+                        <h3>Keep a scan record</h3>
+                        <p>The local API scans one uploaded file or stores a submitted report in SQLite. Accounts keep scan history private; submitted reports stay unverified.</p>
+                    </article>
+                </div>
+
+                <a class="inline-link" href="https://github.com/Igna73M/secureflow/blob/master/docs/architecture.md">
+                    Read the architecture
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 5l7 7-7 7" /></svg>
+                </a>
             </div>
-            <a class="inline-link" href="https://github.com/Igna73M/secureflow/blob/master/docs/architecture.md">Read
-                the architecture <span aria-hidden="true">→</span></a>
         </section>
 
-        <section class="workflow-band" id="workflow" aria-labelledby="workflow-title">
-            <div class="section-shell workflow-content">
-                <div class="workflow-heading">
-                    <p class="eyebrow">FOUR STEPS. ONE ENFORCEABLE OUTCOME.</p>
+        <!-- ============ WORKFLOW ============ -->
+        <section class="section workflow" id="workflow" aria-labelledby="workflow-title">
+            <div class="section-inner">
+                <div class="workflow-header">
+                    <p class="eyebrow">
+                        <span class="eyebrow-dot" aria-hidden="true"></span>
+                        FOUR STEPS · ONE ENFORCEABLE OUTCOME
+                    </p>
                     <h2 id="workflow-title">A gate that knows<br>when it cannot decide.</h2>
                 </div>
-                <ol class="workflow-list">
-                    <li><span class="step-marker">01</span>
-                        <div>
-                            <h3>Scan source</h3>
-                            <p>Run the checks for supported Python or JavaScript files.</p>
-                        </div>
+
+                <ol class="workflow-steps">
+                    <li class="workflow-step glass">
+                        <span class="step-number">01</span>
+                        <h3>Scan source</h3>
+                        <p>Run the configured checks for supported Python or JavaScript files in the target directory.</p>
                     </li>
-                    <li><span class="step-marker">02</span>
-                        <div>
-                            <h3>Normalize findings</h3>
-                            <p>Bring scanner results into a consistent structure.</p>
-                        </div>
+                    <li class="workflow-step glass">
+                        <span class="step-number">02</span>
+                        <h3>Normalize findings</h3>
+                        <p>Bring scanner results into a consistent structure with shared fields for severity and blocking status.</p>
                     </li>
-                    <li><span class="step-marker">03</span>
-                        <div>
-                            <h3>Evaluate policy</h3>
-                            <p>Require complete checks and assess blocking findings.</p>
-                        </div>
+                    <li class="workflow-step glass">
+                        <span class="step-number">03</span>
+                        <h3>Evaluate policy</h3>
+                        <p>Require complete checks and assess blocking findings. Missing or failed checks are never silent passes.</p>
                     </li>
-                    <li><span class="step-marker">04</span>
-                        <div>
-                            <h3>Decide promotion</h3>
-                            <p>Permit promotion only when the overall result is PASS.</p>
-                        </div>
+                    <li class="workflow-step glass">
+                        <span class="step-number">04</span>
+                        <h3>Decide promotion</h3>
+                        <p>Permit promotion only when the overall result is PASS. Both FAIL and ERROR deny promotion.</p>
                     </li>
                 </ol>
             </div>
         </section>
 
-        <section class="section-shell trust-section section-space" id="trust" aria-labelledby="trust-title">
-            <div class="trust-mark" aria-hidden="true"><span></span></div>
-            <div class="trust-copy">
-                <p class="eyebrow">TRANSPARENT BY DESIGN</p>
-                <h2 id="trust-title">An error is not a green light.</h2>
-                <p>Missing checks, invalid results, and scanner errors produce ERROR. Both ERROR and FAIL deny
-                    promotion. A PASS means only that the configured checks completed without policy-blocking findings;
-                    it does not prove code is vulnerability-free or make this project production-ready.</p>
-                <div class="trust-links"><a
-                        href="https://github.com/Igna73M/secureflow/blob/master/docs/threat-model.md">Threat model <span
-                            aria-hidden="true">↗</span></a><a
-                        href="https://github.com/Igna73M/secureflow/blob/master/docs/authentication-plan.md">Authentication
-                        plan <span aria-hidden="true">↗</span></a><a
-                        href="https://github.com/Igna73M/secureflow/blob/master/LICENSE">MIT license <span
-                            aria-hidden="true">↗</span></a></div>
+        <!-- ============ TRUST / PHILOSOPHY ============ -->
+        <section class="section trust" id="trust" aria-labelledby="trust-title">
+            <div class="section-inner">
+                <div class="trust-card glass">
+                    <div class="trust-icon" aria-hidden="true">
+                        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L3 6v6c0 5 3.8 9.3 9 10 5.2-.7 9-5 9-10V6l-9-4z" /><path d="M9 12l2 2 4-4" /></svg>
+                    </div>
+                    <div class="trust-body">
+                        <p class="eyebrow">
+                            <span class="eyebrow-dot" aria-hidden="true"></span>
+                            TRANSPARENT BY DESIGN
+                        </p>
+                        <h2 id="trust-title">An error is not a green light.</h2>
+                        <p>Missing checks, invalid results, and scanner errors produce <strong>ERROR</strong>. Both ERROR and FAIL deny promotion. A PASS means only that the configured checks completed without policy-blocking findings — it does not prove code is vulnerability-free or make this project production-ready.</p>
+                        <div class="trust-links">
+                            <a href="https://github.com/Igna73M/secureflow/blob/master/docs/threat-model.md">
+                                Threat model
+                                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 17L17 7M17 7H8M17 7v9" /></svg>
+                            </a>
+                            <a href="https://github.com/Igna73M/secureflow/blob/master/docs/authentication-plan.md">
+                                Authentication plan
+                                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 17L17 7M17 7H8M17 7v9" /></svg>
+                            </a>
+                            <a href="https://github.com/Igna73M/secureflow/blob/master/LICENSE">
+                                MIT license
+                                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 17L17 7M17 7H8M17 7v9" /></svg>
+                            </a>
+                        </div>
+                    </div>
+                </div>
             </div>
         </section>
 
-        <section class="closing-band" id="get-started" aria-labelledby="closing-title">
-            <div class="section-shell closing-content">
-                <div>
-                    <p class="eyebrow">TRY THE CURRENT BUILD</p>
-                    <h2 id="closing-title">Explore the scan console.</h2>
-                    <p>Run a single-file scan and inspect the API's current local history view.</p>
-                </div><a class="button button-light" href="/console/overview">Open scan console <span
-                        aria-hidden="true">↗</span></a>
+        <!-- ============ CTA ============ -->
+        <section class="section cta-section" id="get-started" aria-labelledby="cta-title">
+            <div class="section-inner">
+                <div class="cta-card glass">
+                    <div class="cta-content">
+                        <p class="eyebrow cta-eyebrow">
+                            <span class="eyebrow-dot" aria-hidden="true"></span>
+                            TRY THE CURRENT BUILD
+                        </p>
+                        <h2 id="cta-title">Explore the scan console.</h2>
+                        <p>Run a single-file scan, inspect findings, and review your private scan history — all from the SecureFlow console.</p>
+                    </div>
+                    <a class="btn btn-accent" href="/console/overview">
+                        Open scan console
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 17L17 7M17 7H8M17 7v9" /></svg>
+                    </a>
+                </div>
             </div>
         </section>
     </main>
 
+    <!-- ============ FOOTER ============ -->
     <footer class="site-footer">
-        <div class="section-shell footer-content">
-            <a class="brand footer-brand" href="/" aria-label="SecureFlow home"><span class="brand-mark"
-                    aria-hidden="true"><span></span></span><span>secureflow</span></a>
-            <p>Open source security gate for supported source code.</p>
-            <nav aria-label="Footer navigation"><a href="https://github.com/Igna73M/secureflow">GitHub</a><a
-                    href="https://github.com/Igna73M/secureflow/blob/master/README.md">Documentation</a><a
-                    href="https://github.com/Igna73M/secureflow/blob/master/docs/threat-model.md">Threat model</a><a
-                    href="https://github.com/Igna73M/secureflow/blob/master/LICENSE">MIT license</a></nav>
-            <span class="copyright">© 2026 SecureFlow contributors</span>
+        <div class="footer-inner">
+            <div class="footer-brand">
+                <a class="brand" href="/" aria-label="SecureFlow home">
+                    <span class="brand-mark" aria-hidden="true">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L3 6v6c0 5 3.8 9.3 9 10 5.2-.7 9-5 9-10V6l-9-4z" /><path d="M9 12l2 2 4-4" /></svg>
+                    </span>
+                    <span class="brand-text">secureflow</span>
+                </a>
+                <p class="footer-tagline">Open source security gate for supported Python and JavaScript source code.</p>
+            </div>
+
+            <nav class="footer-nav" aria-label="Footer navigation">
+                <a href="https://github.com/Igna73M/secureflow">GitHub</a>
+                <a href="https://github.com/Igna73M/secureflow/blob/master/README.md">Documentation</a>
+                <a href="https://github.com/Igna73M/secureflow/blob/master/docs/threat-model.md">Threat model</a>
+                <a href="https://github.com/Igna73M/secureflow/blob/master/docs/architecture.md">Architecture</a>
+                <a href="https://github.com/Igna73M/secureflow/blob/master/LICENSE">MIT license</a>
+            </nav>
+
+            <div class="footer-bottom">
+                <span class="copyright">© 2026 SecureFlow contributors · MIT License</span>
+            </div>
         </div>
     </footer>
+
     <script src="/auth-nav.js" defer></script>
 </body>
 

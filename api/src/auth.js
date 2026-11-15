@@ -63,9 +63,11 @@ function normalizeEmail(value) {
 }
 
 function validPassword(value) {
-    return typeof value === "string" &&
-        Buffer.byteLength(value, "utf8") >= 12 &&
-        Buffer.byteLength(value, "utf8") <= 128;
+    if (typeof value !== "string") return false;
+    return [...value].length >= 8 &&
+        Buffer.byteLength(value, "utf8") <= 128 &&
+        /[\p{L}\p{N}]/u.test(value) &&
+        /[\p{P}\p{S}]/u.test(value);
 }
 
 function publicUser(user) {
@@ -232,7 +234,9 @@ function registerAuthRoutes(app, db) {
         const password = req.body?.password;
         if (!email) return res.status(400).json({ error: "Enter a valid email address." });
         if (!validPassword(password)) {
-            return res.status(400).json({ error: "Password must be 12 to 128 UTF-8 bytes." });
+            return res.status(400).json({
+                error: "Create a password with 8 to 128 characters. Include at least one letter or number, plus a symbol like ! or @.",
+            });
         }
 
         try {

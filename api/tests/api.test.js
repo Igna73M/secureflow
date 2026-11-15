@@ -163,7 +163,7 @@ test("serves real accessible login and registration forms", async () => {
     assert.match(login.text, /role="alert"/);
     assert.equal(register.status, 200);
     assert.match(register.text, /autocomplete="new-password"/);
-    assert.match(register.text, /12 to 128 UTF-8 bytes/);
+    assert.match(register.text, /Create a password with 8 to 128 characters/);
 });
 
 test("registration normalizes email and stores only an Argon2id hash", async () => {
