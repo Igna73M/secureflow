@@ -12,3 +12,4 @@ dashboard/node_modules/
 coverage/
 dist/
 build/
+.agents/
